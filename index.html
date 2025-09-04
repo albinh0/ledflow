@@ -1,0 +1,1229 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>module grid generator v2.0.7</title>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&family=Roboto&family=Open+Sans&family=Lato&family=Montserrat&family=Source+Sans+Pro&family=Raleway&family=Merriweather&family=Ubuntu&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: row;
+            margin: 0;
+            height: 100vh;
+            background-color: #1e1e1e;
+            color: #ffffff;
+            box-sizing: border-box;
+        }
+        .left-panel {
+            width: 20%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+        .right-panel {
+            width: 80%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+        .row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            gap: 10px;
+        }
+        .compact-row {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 10px;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+        .row label {
+            width: 90px;
+            color: #ffffff;
+        }
+        .compact-row label {
+            width: 60px;
+            color: #ffffff;
+            font-size: 12px;
+            line-height: 1.2;
+        }
+        .row input[type="number"] {
+            padding: 5px;
+            width: 60px;
+            background-color: #333;
+            color: #ffffff;
+            border: 1px solid #555;
+            font-family: Arial, sans-serif;
+        }
+        .row input[type="number"].color-select, .compact-row input[type="number"].color-select {
+            width: 50px;
+        }
+        .row input[type="range"], .compact-row input[type="range"] {
+            width: 100px;
+            cursor: pointer;
+        }
+        .compact-row input[type="range"] {
+            font-size: 12px;
+        }
+        .row select {
+            padding: 5px;
+            width: 100px;
+            background-color: #333;
+            color: #ffffff;
+            border: 1px solid #555;
+            font-family: Arial, sans-serif;
+            cursor: pointer;
+        }
+        button {
+            width: 40px;
+            padding: 8px;
+            cursor: pointer;
+            background-color: #0056b3;
+            color: #ffffff;
+            border: none;
+            border-radius: 4px;
+            text-align: center;
+            font-family: Arial, sans-serif;
+        }
+        button:hover {
+            background-color: #003d80;
+        }
+        #canvasContainer {
+            flex: 1;
+            overflow: auto;
+        }
+        canvas {
+            border: 1px solid #ffffff;
+            background-color: transparent;
+            display: block;
+            transform-origin: top left;
+        }
+        #linesList, #groupsList {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 10px;
+        }
+        .line-item, .group-item {
+            display: grid;
+            grid-template-columns: 30px auto 50px 40px 24px;
+            align-items: center;
+            padding: 5px;
+            gap: 5px;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+        }
+        .line-item input[type="text"], .group-item input[type="text"] {
+            padding: 5px;
+            width: 40px;
+            background-color: #333;
+            color: #ffffff;
+            border: 1px solid #555;
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+        }
+        .group-item input[type="number"] {
+            padding: 5px;
+            width: 50px;
+            background-color: #333;
+            color: #ffffff;
+            border: 1px solid #555;
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+        }
+        .line-item button, .group-item button {
+            padding: 3px;
+            background-color: #ff4444;
+            width: 24px;
+            text-align: center;
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+        }
+        .line-item button:hover, .group-item button:hover {
+            background-color: #cc0000;
+        }
+        .note {
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            color: #cccccc;
+            padding: 10px;
+            margin-top: 10px;
+        }
+        .input-group {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            width: 130px;
+        }
+        .color-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .color-group label {
+            width: 90px;
+        }
+        #xmlImport {
+            display: none;
+        }
+        .label-slider-pair {
+            display: flex;
+            align-items: flex-start;
+            gap: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="left-panel">
+        <div class="row">
+            <label>col x rows</label>
+            <div class="input-group">
+                <input type="number" id="cols" min="1" value="16">
+                <span>x</span>
+                <input type="number" id="rows" min="1" value="9">
+            </div>
+        </div>
+        <div class="row">
+            <label>W x H</label>
+            <div class="input-group">
+                <input type="number" id="moduleWidth" min="10" value="128">
+                <span>x</span>
+                <input type="number" id="moduleHeight" min="10" value="128">
+            </div>
+        </div>
+        <div class="row">
+            <div class="color-group">
+                <label for="moduleColor">fill color:</label>
+                <input type="number" id="moduleColor" min="1" max="25" step="1" value="17" class="color-select">
+                <label for="moduleLabelColor">label color:</label>
+                <input type="number" id="moduleLabelColor" min="1" max="25" step="1" value="9" class="color-select">
+            </div>
+        </div>
+        <div class="compact-row">
+            <div class="label-slider-pair">
+                <label for="moduleLabelFontSize">label<br>size:</label>
+                <input type="range" id="moduleLabelFontSize" min="10" max="100" step="1" value="25">
+            </div>
+            <div class="label-slider-pair">
+                <label for="hatchDensity">hatch<br>density:</label>
+                <input type="range" id="hatchDensity" min="2" max="18" step="1" value="10">
+            </div>
+        </div>
+        <div class="row">
+            <label for="connectionFont">data label font:</label>
+            <select id="connectionFont">
+                <option value="Arial, sans-serif">Arial</option>
+                <option value="VT323, monospace">VT323</option>
+                <option value="Roboto, sans-serif">Roboto</option>
+                <option value="Open Sans, sans-serif">Open Sans</option>
+                <option value="Lato, sans-serif">Lato</option>
+                <option value="Montserrat, sans-serif">Montserrat</option>
+                <option value="Source Sans Pro, sans-serif">Source Sans Pro</option>
+                <option value="Raleway, sans-serif">Raleway</option>
+                <option value="Merriweather, serif">Merriweather</option>
+                <option value="Ubuntu, sans-serif" selected>Ubuntu</option>
+            </select>
+        </div>
+        <div class="row">
+            <button onclick="generateGrid()" title="generate">⚙</button>
+            <button onclick="resetGrid()" title="reset">↻</button>
+            <button onclick="zoomOut()" title="zoom out">-</button>
+            <button onclick="zoomIn()" title="zoom in">+</button>
+            <button onclick="exportToPNG()" title="export">↓</button>
+            <button onclick="exportToXML()" title="export XML">XML ↓</button>
+            <button onclick="document.getElementById('xmlImport').click()" title="import XML">XML ↑</button>
+            <input type="file" id="xmlImport" accept=".xml" onchange="importFromXML(event)">
+        </div>
+        <div id="linesList"></div>
+        <div id="groupsList"></div>
+        <div class="note">click to add modules to Data line, double-click to complete selection<br>ALT + click to add modules to Power line, ALT + double-click to complete selection<br>CTRL + click to toggle modules visibility (removes from Power or Data line before)</div>
+    </div>
+    <div class="right-panel">
+        <div id="canvasContainer">
+            <canvas id="gridCanvas"></canvas>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+            return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+            if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+                try {
+                    var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                    var firstSheetName = workbook.SheetNames[0];
+                    var worksheet = workbook.Sheets[firstSheetName];
+                    var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                    var filteredData = jsonData.filter(row => row.some(filledCell));
+                    var headerRowIndex = filteredData.findIndex((row, index) =>
+                        row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                    );
+                    if (headerRowIndex === -1 || headerRowIndex > 25) {
+                        headerRowIndex = 0;
+                    }
+                    var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex));
+                    csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                    return csv;
+                } catch (e) {
+                    console.error(e);
+                    return "";
+                }
+            }
+            return gk_fileData[filename] || "";
+        }
+    </script>
+    <script>
+        const canvas = document.getElementById('gridCanvas');
+        const ctx = canvas.getContext('2d');
+        const linesList = document.getElementById('linesList');
+        const groupsList = document.getElementById('groupsList');
+        let gridState = [];
+        let connections = [];
+        let currentConnection = [];
+        let currentColor = null;
+        let selectedModules = [];
+        let selectedGroups = [];
+        let lineCounter = 1;
+        let groupCounter = 1;
+        let removedIndices = [];
+        let removedGroupIndices = [];
+        let currentScale = 0.33;
+        const scales = [0.05, 0.10, 0.15, 0.20, 0.33, 0.50, 0.75, 1.00];
+        const mainColors = [
+            '#FF0000', '#006400', '#0000FF', '#FFA500', '#FF00FF', '#00FFFF',
+            '#FFA500', '#800080', '#008000', '#000080', '#808000', '#800000',
+            '#00FF7F', '#FF4500', '#4B0082', '#FFD700'
+        ];
+        const groupColors = Array.from({ length: 25 }, (_, i) => {
+            const value = (i + 1) * 10;
+            const hex = value.toString(16).padStart(2, '0').toUpperCase();
+            return `#${hex}${hex}${hex}`;
+        });
+
+        function initializeGrid(cols, rows) {
+            gridState = Array(rows).fill().map(() => Array(cols).fill(true));
+            connections = [];
+            currentConnection = [];
+            currentColor = null;
+            selectedModules = [];
+            selectedGroups = [];
+            lineCounter = 1;
+            groupCounter = 1;
+            removedIndices = [];
+            removedGroupIndices = [];
+            updateLinesList();
+            updateGroupsList();
+            updateFontSizeSliders();
+        }
+
+        function updateFontSizeSliders() {
+            const moduleHeight = parseInt(document.getElementById('moduleHeight').value);
+            document.getElementById('moduleLabelFontSize').value = Math.round(0.2 * moduleHeight);
+            document.getElementById('moduleColor').value = 17;
+            document.getElementById('moduleLabelColor').value = 9;
+            document.getElementById('hatchDensity').value = 10;
+        }
+
+        function getGridParams() {
+            return {
+                cols: parseInt(document.getElementById('cols').value),
+                rows: parseInt(document.getElementById('rows').value),
+                moduleWidth: parseInt(document.getElementById('moduleWidth').value),
+                moduleHeight: parseInt(document.getElementById('moduleHeight').value),
+                moduleColor: groupColors[parseInt(document.getElementById('moduleColor').value) - 1]
+            };
+        }
+
+        function generateGrid() {
+            const { cols, rows, moduleWidth, moduleHeight } = getGridParams();
+            initializeGrid(cols, rows);
+            canvas.width = cols * moduleWidth;
+            canvas.height = rows * moduleHeight;
+            canvas.style.transform = `scale(${currentScale})`;
+            drawGrid();
+        }
+
+        function zoomOut() {
+            let currentIndex = scales.indexOf(currentScale);
+            currentScale = currentIndex === -1
+                ? scales.reduce((prev, curr) => curr < currentScale && (!prev || curr > prev) ? curr : prev, scales[0])
+                : scales[Math.max(currentIndex - 1, 0)];
+            canvas.style.transform = `scale(${currentScale})`;
+            drawGrid();
+        }
+
+        function zoomIn() {
+            let currentIndex = scales.indexOf(currentScale);
+            currentScale = currentIndex === -1
+                ? scales.reduce((prev, curr) => curr > currentScale && (!prev || curr < prev) ? curr : prev, scales[scales.length - 1])
+                : scales[Math.min(currentIndex + 1, scales.length - 1)];
+            canvas.style.transform = `scale(${currentScale})`;
+            drawGrid();
+        }
+
+        async function drawGrid() {
+            await document.fonts.ready;
+            const { cols, rows, moduleWidth, moduleHeight, moduleColor } = getGridParams();
+            const labelFontSize = parseInt(document.getElementById('moduleLabelFontSize').value);
+            const labelColorIndex = parseInt(document.getElementById('moduleLabelColor').value);
+            const connectionFontSize = Math.round(0.4 * moduleHeight);
+            const connectionFont = document.getElementById('connectionFont').value;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.lineWidth = 1;
+
+            // Draw modules
+            for (let row = 0; row < rows; row++) {
+                for (let col = 0; col < cols; col++) {
+                    if (gridState[row][col]) {
+                        const x = col * moduleWidth;
+                        const y = row * moduleHeight;
+                        ctx.fillStyle = moduleColor;
+                        ctx.fillRect(x, y, moduleWidth, moduleHeight);
+                        ctx.strokeStyle = labelColorIndex > 0 ? groupColors[labelColorIndex - 1] : '#000000';
+                        ctx.strokeRect(x, y, moduleWidth, moduleHeight);
+
+                        if (labelColorIndex > 0) {
+                            ctx.save();
+                            ctx.font = `${labelFontSize}px Arial, sans-serif`;
+                            ctx.fillStyle = groupColors[labelColorIndex - 1];
+                            ctx.textAlign = 'left';
+                            ctx.textBaseline = 'top';
+                            ctx.fillText(`${row + 1}.${col + 1}`, x + 10, y + 10);
+                            ctx.restore();
+                        }
+                    }
+                }
+            }
+
+            // Draw main selections
+            connections.forEach((conn, index) => {
+                drawMainSelection(conn.points, conn.color, moduleWidth, moduleHeight, index % 2 === 0);
+            });
+            if (currentConnection.length > 0) {
+                const isForwardSlash = (removedIndices[0] || connections.length) % 2 === 0;
+                drawMainSelection(currentConnection, currentColor, moduleWidth, moduleHeight, isForwardSlash);
+            }
+
+            // Draw alt selection modules
+            selectedModules.forEach(module => {
+                const x = module.col * moduleWidth;
+                const y = module.row * moduleHeight;
+                ctx.save();
+                ctx.strokeStyle = '#808080';
+                ctx.lineWidth = 9;
+                ctx.setLineDash([22.5, 10]);
+                ctx.strokeRect(x + 4.5, y + 4.5, moduleWidth - 9, moduleHeight - 9);
+                ctx.setLineDash([]);
+                ctx.restore();
+            });
+
+            // Draw alt selection groups
+            selectedGroups.forEach(group => {
+                if (group.modules.length > 0) {
+                    const edges = [];
+                    const offset = 4.5;
+                    group.modules.forEach(module => {
+                        const x = module.col * moduleWidth;
+                        const y = module.row * moduleHeight;
+                        if (!group.modules.some(p => p.row === module.row - 1 && p.col === module.col)) {
+                            edges.push({ x1: x + offset, y1: y + offset, x2: x + moduleWidth - offset, y2: y + offset });
+                        }
+                        if (!group.modules.some(p => p.row === module.row + 1 && p.col === module.col)) {
+                            edges.push({ x1: x + offset, y1: y + moduleHeight - offset, x2: x + moduleWidth - offset, y2: y + moduleHeight - offset });
+                        }
+                        if (!group.modules.some(p => p.row === module.row && p.col === module.col - 1)) {
+                            edges.push({ x1: x + offset, y1: y + offset, x2: x + offset, y2: y + moduleHeight - offset });
+                        }
+                        if (!group.modules.some(p => p.row === module.row && p.col === module.col + 1)) {
+                            edges.push({ x1: x + moduleWidth - offset, y1: y + offset, x2: x + moduleWidth - offset, y2: y + moduleHeight - offset });
+                        }
+                    });
+                    ctx.save();
+                    ctx.strokeStyle = groupColors[group.colorIndex - 1];
+                    ctx.lineWidth = 9;
+                    ctx.setLineDash([22.5, 10]);
+                    ctx.beginPath();
+                    edges.forEach(edge => {
+                        ctx.moveTo(edge.x1, edge.y1);
+                        ctx.lineTo(edge.x2, edge.y2);
+                    });
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                    ctx.restore();
+                }
+            });
+
+            // Draw main selection labels
+            ctx.save();
+            ctx.globalAlpha = 1;
+            for (let row = 0; row < rows; row++) {
+                for (let col = 0; col < cols; col++) {
+                    if (!gridState[row][col]) continue;
+                    const x = col * moduleWidth;
+                    const y = row * moduleHeight;
+
+                    // Start label
+                    const connStart = connections.find(c => c.points[0].row === row && c.points[0].col === col);
+                    if (connStart && connStart.name) {
+                        ctx.font = `bold ${connectionFontSize}px ${connectionFont}`;
+                        ctx.fillStyle = '#000000';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        let labelX = x + moduleWidth / 2;
+                        let labelY = y + moduleHeight / 2;
+                        if (connStart.points.length > 1) {
+                            const first = connStart.points[0];
+                            const second = connStart.points[1];
+                            if (second.col > first.col) {
+                                labelX = x + moduleWidth / 4;
+                                labelY = y + 3 * moduleHeight / 4;
+                            } else if (second.col < first.col) {
+                                labelX = x + 3 * moduleWidth / 4;
+                                labelY = y + moduleHeight / 4;
+                            } else if (second.row > first.row) {
+                                labelX = x + 3 * moduleWidth / 4;
+                                labelY = y + moduleHeight / 4;
+                            } else if (second.row < first.row) {
+                                labelX = x + moduleWidth / 4;
+                                labelY = y + 3 * moduleHeight / 4;
+                            }
+                        }
+                        ctx.fillText(connStart.name, labelX, labelY);
+                    }
+
+                    // End label
+                    const connEnd = connections.find(c => c.points[c.points.length - 1].row === row && c.points[c.points.length - 1].col === col);
+                    if (connEnd && connEnd.endName) {
+                        ctx.font = `bold ${connectionFontSize}px ${connectionFont}`;
+                        ctx.fillStyle = '#000000';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        let labelX = x + moduleWidth / 2;
+                        let labelY = y + moduleHeight / 2;
+                        if (connEnd.points.length > 1) {
+                            const last = connEnd.points[connEnd.points.length - 1];
+                            const secondLast = connEnd.points[connEnd.points.length - 2];
+                            if (secondLast.col > last.col || secondLast.row < last.row) {
+                                labelX = x + moduleWidth / 4;
+                                labelY = y + 3 * moduleHeight / 4;
+                            } else if (secondLast.col < last.col || secondLast.row > last.row) {
+                                labelX = x + 3 * moduleWidth / 4;
+                                labelY = y + moduleHeight / 4;
+                            }
+                        }
+                        ctx.fillText(connEnd.endName, labelX, labelY);
+                    }
+
+                    // Current connection start label
+                    if (currentConnection.length > 0 && currentConnection[0].row === row && currentConnection[0].col === col) {
+                        ctx.font = `bold ${connectionFontSize}px ${connectionFont}`;
+                        ctx.fillStyle = '#000000';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        let labelX = x + moduleWidth / 2;
+                        let labelY = y + moduleHeight / 2;
+                        if (currentConnection.length > 1) {
+                            const first = currentConnection[0];
+                            const second = currentConnection[1];
+                            if (second.col > first.col) {
+                                labelX = x + moduleWidth / 4;
+                                labelY = y + 3 * moduleHeight / 4;
+                            } else if (second.col < first.col) {
+                                labelX = x + 3 * moduleWidth / 4;
+                                labelY = y + moduleHeight / 4;
+                            } else if (second.row > first.row) {
+                                labelX = x + 3 * moduleWidth / 4;
+                                labelY = y + moduleHeight / 4;
+                            } else if (second.row < first.row) {
+                                labelX = x + moduleWidth / 4;
+                                labelY = y + 3 * moduleHeight / 4;
+                            }
+                        }
+                        const nextIndex = removedIndices.length > 0 ? removedIndices[0] : connections.length;
+                        ctx.fillText(`${nextIndex + 1}A`, labelX, labelY);
+                    }
+                }
+            }
+            ctx.restore();
+        }
+
+        function drawMainSelection(points, color, moduleWidth, moduleHeight, isForwardSlash) {
+            if (points.length < 1) return;
+            const step = 20 - parseInt(document.getElementById('hatchDensity').value);
+            points.forEach(point => {
+                const x = point.col * moduleWidth;
+                const y = point.row * moduleHeight;
+                ctx.save();
+                ctx.beginPath();
+                ctx.rect(x, y, moduleWidth, moduleHeight);
+                ctx.clip();
+                ctx.strokeStyle = color + '80';
+                ctx.lineWidth = 2;
+                if (isForwardSlash) {
+                    for (let i = -moduleHeight; i <= moduleWidth + moduleHeight; i += step) {
+                        ctx.beginPath();
+                        ctx.moveTo(x + i, y);
+                        ctx.lineTo(x + i + moduleHeight, y + moduleHeight);
+                        ctx.stroke();
+                    }
+                } else {
+                    for (let i = -moduleHeight; i <= moduleWidth + moduleHeight; i += step) {
+                        ctx.beginPath();
+                        ctx.moveTo(x + i, y);
+                        ctx.lineTo(x + i - moduleHeight, y + moduleHeight);
+                        ctx.stroke();
+                    }
+                }
+                ctx.restore();
+            });
+
+            if (points.length >= 2) {
+                const lineWidth = Math.max(3, moduleWidth / 30);
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = lineWidth;
+                ctx.beginPath();
+                points.forEach((point, index) => {
+                    const px = point.col * moduleWidth + moduleWidth / 2;
+                    const py = point.row * moduleHeight + moduleHeight / 2;
+                    if (index === 0) ctx.moveTo(px, py);
+                    else ctx.lineTo(px, py);
+                });
+                ctx.stroke();
+
+                const last = points[points.length - 1];
+                const secondLast = points[points.length - 2];
+                const x1 = secondLast.col * moduleWidth + moduleWidth / 2;
+                const y1 = secondLast.row * moduleHeight + moduleHeight / 2;
+                const x2 = last.col * moduleWidth + moduleWidth / 2;
+                const y2 = last.row * moduleHeight + moduleHeight / 2;
+                drawArrow(x1, y1, x2, y2, lineWidth);
+            }
+        }
+
+        function drawArrow(x1, y1, x2, y2, lineWidth) {
+            const headLength = 40;
+            const dx = x2 - x1;
+            const dy = y2 - y1;
+            const angle = Math.atan2(dy, dx);
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = lineWidth;
+            ctx.beginPath();
+            ctx.moveTo(x2, y2);
+            ctx.lineTo(x2 - headLength * Math.cos(angle - Math.PI / 6), y2 - headLength * Math.sin(angle - Math.PI / 6));
+            ctx.moveTo(x2, y2);
+            ctx.lineTo(x2 - headLength * Math.cos(angle + Math.PI / 6), y2 - headLength * Math.sin(angle + Math.PI / 6));
+            ctx.stroke();
+        }
+
+        function updateLinesList() {
+            linesList.innerHTML = '';
+            connections.forEach((conn, index) => {
+                if (conn.points.length < 2) return;
+                const div = document.createElement('div');
+                div.className = 'line-item';
+                div.innerHTML = `
+                    <span style="display: inline-block; background-color: red; padding: 2px; text-align: center;">${index + 1}</span>
+                    <span>${conn.name || `${index + 1}A`}/${conn.endName || `${index + 1}B`} (${conn.points.length} mod.)</span>
+                `;
+                const mainInput = document.createElement('input');
+                mainInput.type = 'text';
+                mainInput.value = conn.name || `${index + 1}A`;
+                mainInput.placeholder = 'main';
+                mainInput.onchange = () => {
+                    conn.name = mainInput.value;
+                    drawGrid();
+                    updateLinesList();
+                };
+                div.appendChild(mainInput);
+
+                const endInput = document.createElement('input');
+                endInput.type = 'text';
+                endInput.value = conn.endName || '';
+                endInput.placeholder = 'backup';
+                endInput.onchange = () => {
+                    conn.endName = endInput.value;
+                    drawGrid();
+                    updateLinesList();
+                };
+                div.appendChild(endInput);
+
+                const removeBtn = document.createElement('button');
+                removeBtn.textContent = '✕';
+                removeBtn.onclick = () => removeConnection(index);
+                div.appendChild(removeBtn);
+                linesList.appendChild(div);
+            });
+        }
+
+        function updateGroupsList() {
+            groupsList.innerHTML = '';
+            const sortedGroups = [...selectedGroups].sort((a, b) => {
+                const aMinRow = Math.min(...a.modules.map(m => m.row));
+                const aMinCol = Math.min(...a.modules.filter(m => m.row === aMinRow).map(m => m.col));
+                const bMinRow = Math.min(...b.modules.map(m => m.row));
+                const bMinCol = Math.min(...b.modules.filter(m => m.row === bMinRow).map(m => m.col));
+                return aMinRow !== bMinRow ? aMinRow - bMinRow : aMinCol - bMinCol;
+            });
+            sortedGroups.forEach((group, sortedIndex) => {
+                if (group.modules.length === 0) return;
+                const originalIndex = selectedGroups.findIndex(g => g.index === group.index);
+                const div = document.createElement('div');
+                div.className = 'group-item';
+                div.innerHTML = `
+                    <span style="display: inline-block; background-color: blue; padding: 2px; text-align: center;">${group.index}</span>
+                    <span>${group.modules.length} mod.</span>
+                `;
+                const colorInput = document.createElement('input');
+                colorInput.type = 'number';
+                colorInput.min = '1';
+                colorInput.max = '25';
+                colorInput.step = '1';
+                colorInput.value = group.colorIndex;
+                colorInput.oninput = () => {
+                    const value = Math.max(1, Math.min(25, parseInt(colorInput.value)));
+                    selectedGroups[originalIndex].colorIndex = value;
+                    colorInput.value = value;
+                    drawGrid();
+                };
+                div.appendChild(colorInput);
+                div.appendChild(document.createElement('span'));
+                const removeBtn = document.createElement('button');
+                removeBtn.textContent = '✕';
+                removeBtn.onclick = () => removeGroup(originalIndex);
+                div.appendChild(removeBtn);
+                groupsList.appendChild(div);
+            });
+        }
+
+        function removeConnection(index) {
+            if (!removedIndices.includes(index)) {
+                removedIndices.push(index);
+                removedIndices.sort((a, b) => a - b);
+            }
+            connections.splice(index, 1);
+            renumberConnections();
+            updateLinesList();
+            drawGrid();
+        }
+
+        function removeGroup(index) {
+            if (!removedGroupIndices.includes(selectedGroups[index].index)) {
+                removedGroupIndices.push(selectedGroups[index].index);
+                removedGroupIndices.sort((a, b) => a - b);
+            }
+            selectedGroups.splice(index, 1);
+            updateGroupsList();
+            drawGrid();
+        }
+
+        function renumberConnections() {
+            connections.forEach((conn, index) => {
+                conn.name = `${index + 1}A`;
+                conn.endName = `${index + 1}B`;
+            });
+            lineCounter = connections.length + 1;
+        }
+
+        function isModuleInConnection(row, col) {
+            return connections.some(conn => conn.points.some(p => p.row === row && p.col === col));
+        }
+
+        function removePointFromConnections(row, col) {
+            const removed = [];
+            connections = connections.map((conn, index) => {
+                const pointIndex = conn.points.findIndex(p => p.row === row && p.col === col);
+                if (pointIndex !== -1) {
+                    const newPoints = conn.points.slice(0, pointIndex);
+                    if (newPoints.length < 2) {
+                        removed.push(index);
+                        return null;
+                    }
+                    return { ...conn, points: newPoints };
+                }
+                return conn;
+            }).filter(conn => conn !== null);
+            removed.forEach(index => {
+                if (!removedIndices.includes(index)) removedIndices.push(index);
+                removedIndices.sort((a, b) => a - b);
+            });
+            const index = currentConnection.findIndex(p => p.row === row && p.col === col);
+            if (index !== -1) {
+                currentConnection = currentConnection.slice(0, index);
+                if (currentConnection.length < 1) {
+                    currentConnection = [];
+                    currentColor = null;
+                }
+            }
+            renumberConnections();
+            updateLinesList();
+        }
+
+        function interpolatePoints(start, end) {
+            const points = [];
+            const steps = Math.max(Math.abs(end.row - start.row), Math.abs(end.col - start.col)) || 1;
+            for (let i = 0; i <= steps; i++) {
+                const t = i / steps;
+                const row = Math.round(start.row + (end.row - start.row) * t);
+                const col = Math.round(start.col + (end.col - start.col) * t);
+                points.push({ row, col, color: currentColor });
+            }
+            const uniquePoints = [];
+            const seen = new Set();
+            points.forEach(p => {
+                const key = `${p.row},${p.col}`;
+                if (!seen.has(key) && gridState[p.row][p.col]) {
+                    seen.add(key);
+                    uniquePoints.push(p);
+                }
+            });
+            return uniquePoints;
+        }
+
+        function doesPathIntersectMainSelection(newPoints) {
+            return connections.reduce((acc, conn, index) => {
+                if (newPoints.some(p => conn.points.some(cp => cp.row === p.row && cp.col === p.col))) {
+                    acc.push(index);
+                }
+                return acc;
+            }, []);
+        }
+
+        function areModulesAdjacent(modules) {
+            if (modules.length <= 1) return true;
+            const visited = new Set();
+            function isAdjacent(p1, p2) {
+                return (Math.abs(p1.row - p2.row) === 1 && p1.col === p2.col) ||
+                       (Math.abs(p1.col - p2.col) === 1 && p1.row === p2.row);
+            }
+            function dfs(module) {
+                const key = `${module.row},${module.col}`;
+                visited.add(key);
+                modules.forEach(other => {
+                    if (!visited.has(`${other.row},${other.col}`) && isAdjacent(module, other)) {
+                        dfs(other);
+                    }
+                });
+            }
+            dfs(modules[0]);
+            return visited.size === modules.length;
+        }
+
+        function findFurthestModules(modules) {
+            let maxDistance = -1;
+            let corner1 = modules[0];
+            let corner2 = modules[0];
+            for (let i = 0; i < modules.length; i++) {
+                for (let j = i + 1; j < modules.length; j++) {
+                    const dist = Math.abs(modules[i].row - modules[j].row) + Math.abs(modules[i].col - modules[j].col);
+                    if (dist > maxDistance) {
+                        maxDistance = dist;
+                        corner1 = modules[i];
+                        corner2 = modules[j];
+                    }
+                }
+            }
+            return [corner1, corner2];
+        }
+
+        function getModulesInRectangle(corner1, corner2, rows, cols) {
+            const minRow = Math.min(corner1.row, corner2.row);
+            const maxRow = Math.max(corner1.row, corner2.row);
+            const minCol = Math.min(corner1.col, corner2.col);
+            const maxCol = Math.max(corner1.col, corner2.col);
+            const modules = [];
+            for (let row = minRow; row <= maxRow; row++) {
+                for (let col = minCol; col <= maxCol; col++) {
+                    if (row >= 0 && row < rows && col >= 0 && col < cols && gridState[row][col]) {
+                        modules.push({ row, col });
+                    }
+                }
+            }
+            return modules;
+        }
+
+        function doesGroupIntersectRectangle(group, newGroup) {
+            return group.modules.some(module => 
+                newGroup.some(newModule => newModule.row === module.row && newModule.col === module.col));
+        }
+
+        function toggleModule(event) {
+            const { cols, rows, moduleWidth, moduleHeight } = getGridParams();
+            const rect = canvas.getBoundingClientRect();
+            const scale = parseFloat(canvas.style.transform.replace('scale(', '').replace(')', '')) || 1;
+            const x = (event.clientX - rect.left) / scale;
+            const y = (event.clientY - rect.top) / scale;
+            const col = Math.floor(x / moduleWidth);
+            const row = Math.floor(y / moduleHeight);
+
+            if (row < 0 || row >= rows || col < 0 || col >= cols) return;
+
+            if (event.altKey) {
+                if (gridState[row][col]) {
+                    const module = { row, col };
+                    const inModules = selectedModules.some(p => p.row === row && p.col === col);
+                    const inGroup = selectedGroups.some(g => g.modules.some(p => p.row === row && p.col === col));
+                    if (!inModules && !inGroup) {
+                        selectedModules.push(module);
+                        drawGrid();
+                    }
+                }
+            } else if (event.ctrlKey) {
+                const module = { row, col };
+                const moduleIndex = selectedModules.findIndex(p => p.row === row && p.col === col);
+                if (moduleIndex !== -1) {
+                    selectedModules.splice(moduleIndex, 1);
+                    drawGrid();
+                } else {
+                    let removedFromGroup = false;
+                    selectedGroups = selectedGroups.map(group => {
+                        const groupIndex = group.modules.findIndex(p => p.row === row && p.col === col);
+                        if (groupIndex !== -1) {
+                            group.modules.splice(groupIndex, 1);
+                            removedFromGroup = true;
+                        }
+                        return group;
+                    }).filter(g => g.modules.length > 0);
+                    if (removedFromGroup) {
+                        updateGroupsList();
+                        drawGrid();
+                    } else if (isModuleInConnection(row, col)) {
+                        removePointFromConnections(row, col);
+                        drawGrid();
+                    } else if (!selectedModules.some(p => p.row === row && p.col === col) &&
+                               !selectedGroups.some(g => g.modules.some(p => p.row === row && p.col === col))) {
+                        gridState[row][col] = !gridState[row][col];
+                        if (!gridState[row][col]) {
+                            removePointFromConnections(row, col);
+                            selectedModules = selectedModules.filter(p => p.row !== row || p.col !== col);
+                            selectedGroups = selectedGroups.map(g => ({
+                                ...g,
+                                modules: g.modules.filter(p => p.row !== row || p.col !== col)
+                            })).filter(g => g.modules.length > 0);
+                            updateGroupsList();
+                        }
+                        drawGrid();
+                    }
+                }
+            } else if (gridState[row][col]) {
+                const point = { row, col, color: currentColor };
+                if (currentConnection.length === 0) {
+                    currentConnection = [point];
+                    const nextIndex = removedIndices.length > 0 ? removedIndices[0] : connections.length;
+                    currentColor = mainColors[nextIndex % 16];
+                    drawGrid();
+                } else {
+                    // Allow adding the point even if it's the last in currentConnection
+                    const lastPoint = currentConnection[currentConnection.length - 1];
+                    if (lastPoint.row === row && lastPoint.col === col) {
+                        // If clicking the last point, do nothing unless double-click (handled separately)
+                        return;
+                    }
+                    if (!isModuleInConnection(row, col)) {
+                        const newPoints = interpolatePoints(lastPoint, point);
+                        const intersectingIndices = doesPathIntersectMainSelection(newPoints);
+                        if (intersectingIndices.length > 0) {
+                            intersectingIndices.sort((a, b) => b - a);
+                            intersectingIndices.forEach(index => {
+                                if (!removedIndices.includes(index)) removedIndices.push(index);
+                                connections.splice(index, 1);
+                            });
+                            removedIndices.sort((a, b) => a - b);
+                            renumberConnections();
+                            updateLinesList();
+                        }
+                        newPoints.forEach(p => {
+                            if (!currentConnection.some(cp => cp.row === p.row && cp.col === p.col)) {
+                                currentConnection.push(p);
+                            }
+                        });
+                        drawGrid();
+                    }
+                }
+            }
+        }
+
+        function handleDoubleClick(event) {
+            const { cols, rows, moduleWidth, moduleHeight } = getGridParams();
+            const rect = canvas.getBoundingClientRect();
+            const scale = parseFloat(canvas.style.transform.replace('scale(', '').replace(')', '')) || 1;
+            const x = (event.clientX - rect.left) / scale;
+            const y = (event.clientY - rect.top) / scale;
+            const col = Math.floor(x / moduleWidth);
+            const row = Math.floor(y / moduleHeight);
+
+            if (row < 0 || row >= rows || col < 0 || col >= cols || !gridState[row][col]) return;
+
+            if (event.altKey && selectedModules.length > 0) {
+                selectedGroups = selectedGroups.map(group => ({
+                    ...group,
+                    modules: group.modules.filter(p => !selectedModules.some(m => m.row === p.row && m.col === p.col))
+                })).filter(g => g.modules.length > 0);
+                let newGroup;
+                if (areModulesAdjacent(selectedModules)) {
+                    newGroup = selectedModules;
+                } else {
+                    const [corner1, corner2] = findFurthestModules(selectedModules);
+                    newGroup = getModulesInRectangle(corner1, corner2, rows, cols);
+                }
+                selectedGroups = selectedGroups.filter(group => !doesGroupIntersectRectangle(group, newGroup));
+                const groupIndex = removedGroupIndices.length > 0 ? removedGroupIndices.shift() : groupCounter++;
+                const colorIndex = (groupIndex - 1) % 3 + 4; // Indices 4, 5, 6
+                selectedGroups.push({ index: groupIndex, modules: [...newGroup], colorIndex });
+                selectedModules = [];
+                updateGroupsList();
+                drawGrid();
+            } else if (currentConnection.length >= 1 && currentConnection[currentConnection.length - 1].row === row && currentConnection[currentConnection.length - 1].col === col) {
+                completeCurrentConnection();
+                drawGrid();
+            }
+        }
+
+        function completeCurrentConnection() {
+            if (currentConnection.length < 2) {
+                currentConnection = [];
+                currentColor = null;
+                return;
+            }
+            const intersectingIndices = doesPathIntersectMainSelection(currentConnection);
+            if (intersectingIndices.length > 0) {
+                intersectingIndices.sort((a, b) => b - a);
+                intersectingIndices.forEach(index => {
+                    if (!removedIndices.includes(index)) removedIndices.push(index);
+                    connections.splice(index, 1);
+                });
+                removedIndices.sort((a, b) => a - b);
+                renumberConnections();
+            }
+            const connectionIndex = removedIndices.length > 0 ? removedIndices.shift() : connections.length;
+            connections.push({
+                points: [...currentConnection],
+                color: currentColor,
+                name: `${connectionIndex + 1}A`,
+                endName: `${connectionIndex + 1}B`
+            });
+            lineCounter = Math.max(lineCounter, connections.length + 1);
+            currentConnection = [];
+            currentColor = null;
+            renumberConnections();
+            updateLinesList();
+        }
+
+        function resetGrid() {
+            const { cols, rows } = getGridParams();
+            initializeGrid(cols, rows);
+            canvas.style.transform = `scale(${currentScale})`;
+            drawGrid();
+        }
+
+        function exportToPNG() {
+            const { cols, rows } = getGridParams();
+            const link = document.createElement('a');
+            link.download = `grid_${cols}x${rows}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
+        function exportToXML() {
+            const xml = new XMLSerializer().serializeToString(createXML());
+            const blob = new Blob([xml], { type: 'application/xml' });
+            const link = document.createElement('a');
+            link.download = 'grid_settings.xml';
+            link.href = URL.createObjectURL(blob);
+            link.click();
+        }
+
+        function createXML() {
+            const xml = new DOMParser().parseFromString('<grid></grid>', 'application/xml');
+            const root = xml.documentElement;
+            const params = xml.createElement('params');
+            params.setAttribute('cols', document.getElementById('cols').value);
+            params.setAttribute('rows', document.getElementById('rows').value);
+            params.setAttribute('moduleWidth', document.getElementById('moduleWidth').value);
+            params.setAttribute('moduleHeight', document.getElementById('moduleHeight').value);
+            root.appendChild(params);
+
+            const gridStateElem = xml.createElement('gridState');
+            gridState.forEach((row, r) => {
+                row.forEach((visible, c) => {
+                    const module = xml.createElement('module');
+                    module.setAttribute('row', r);
+                    module.setAttribute('col', c);
+                    module.setAttribute('visible', visible);
+                    gridStateElem.appendChild(module);
+                });
+            });
+            root.appendChild(gridStateElem);
+
+            const mainSelections = xml.createElement('mainSelections');
+            connections.forEach(conn => {
+                const selection = xml.createElement('selection');
+                selection.setAttribute('color', conn.color);
+                selection.setAttribute('name', conn.name);
+                selection.setAttribute('endName', conn.endName);
+                conn.points.forEach(point => {
+                    const p = xml.createElement('point');
+                    p.setAttribute('row', point.row);
+                    p.setAttribute('col', point.col);
+                    selection.appendChild(p);
+                });
+                mainSelections.appendChild(selection);
+            });
+            root.appendChild(mainSelections);
+
+            const altGroups = xml.createElement('altGroups');
+            selectedGroups.forEach(group => {
+                const g = xml.createElement('group');
+                g.setAttribute('index', group.index);
+                g.setAttribute('colorIndex', group.colorIndex);
+                group.modules.forEach(module => {
+                    const m = xml.createElement('module');
+                    m.setAttribute('row', module.row);
+                    m.setAttribute('col', module.col);
+                    g.appendChild(m);
+                });
+                altGroups.appendChild(g);
+            });
+            root.appendChild(altGroups);
+
+            return xml;
+        }
+
+        function importFromXML(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const xml = new DOMParser().parseFromString(e.target.result, 'application/xml');
+                const parseError = xml.getElementsByTagName('parsererror')[0];
+                if (parseError) {
+                    console.error('Invalid XML file');
+                    return;
+                }
+                const params = xml.getElementsByTagName('params')[0];
+                document.getElementById('cols').value = params.getAttribute('cols');
+                document.getElementById('rows').value = params.getAttribute('rows');
+                document.getElementById('moduleWidth').value = params.getAttribute('moduleWidth');
+                document.getElementById('moduleHeight').value = params.getAttribute('moduleHeight');
+                generateGrid();
+
+                const gridStateElem = xml.getElementsByTagName('gridState')[0];
+                const modules = gridStateElem.getElementsByTagName('module');
+                for (let m of modules) {
+                    const r = parseInt(m.getAttribute('row'));
+                    const c = parseInt(m.getAttribute('col'));
+                    gridState[r][c] = m.getAttribute('visible') === 'true';
+                }
+
+                connections = [];
+                const mainSelections = xml.getElementsByTagName('mainSelections')[0];
+                const selections = mainSelections.getElementsByTagName('selection');
+                for (let s of selections) {
+                    const points = [];
+                    const ps = s.getElementsByTagName('point');
+                    for (let p of ps) {
+                        points.push({ row: parseInt(p.getAttribute('row')), col: parseInt(p.getAttribute('col')) });
+                    }
+                    connections.push({
+                        points,
+                        color: s.getAttribute('color'),
+                        name: s.getAttribute('name'),
+                        endName: s.getAttribute('endName')
+                    });
+                }
+                renumberConnections();
+                updateLinesList();
+
+                selectedGroups = [];
+                const altGroups = xml.getElementsByTagName('altGroups')[0];
+                const groups = altGroups.getElementsByTagName('group');
+                for (let g of groups) {
+                    const modules = [];
+                    const ms = g.getElementsByTagName('module');
+                    for (let m of ms) {
+                        modules.push({ row: parseInt(m.getAttribute('row')), col: parseInt(m.getAttribute('col')) });
+                    }
+                    selectedGroups.push({
+                        index: parseInt(g.getAttribute('index')),
+                        modules,
+                        colorIndex: parseInt(g.getAttribute('colorIndex'))
+                    });
+                }
+                updateGroupsList();
+                drawGrid();
+            };
+            reader.readAsText(file);
+        }
+
+        document.getElementById('moduleColor').addEventListener('input', () => {
+            const input = document.getElementById('moduleColor');
+            input.value = Math.max(1, Math.min(25, parseInt(input.value)));
+            drawGrid();
+        });
+        document.getElementById('moduleLabelFontSize').addEventListener('input', drawGrid);
+        document.getElementById('moduleLabelColor').addEventListener('input', () => {
+            const input = document.getElementById('moduleLabelColor');
+            input.value = Math.max(1, Math.min(25, parseInt(input.value)));
+            drawGrid();
+        });
+        document.getElementById('hatchDensity').addEventListener('input', drawGrid);
+        document.getElementById('connectionFont').addEventListener('change', drawGrid);
+        canvas.addEventListener('click', toggleModule);
+        canvas.addEventListener('dblclick', handleDoubleClick);
+        generateGrid();
+    </script>
+</body>
+</html>
