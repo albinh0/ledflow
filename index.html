@@ -42,8 +42,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LedFlow v1.1</title>
+    <title>LedFlow v1.1.26</title>
     <link href="https://fonts.googleapis.com/css2?family=VT323&family=Roboto&family=Open+Sans&family=Lato&family=Montserrat&family=Source+Sans+Pro&family=Raleway&family=Merriweather&family=Ubuntu&display=swap" rel="stylesheet">
+        <link rel="icon" type="image/png" href="favicon.png">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -51,13 +52,18 @@
             flex-direction: row;
             margin: 0;
             height: 100vh;
-            background-color: #1e1e1e;
+            background: #252526;
             color: #ffffff;
             box-sizing: border-box;
         }
+        .main-content {
+            display: flex;
+            flex: 1;
+            flex-direction: row;
+            overflow: hidden;
+        }
         .left-panel {
             width: 20%;
-            height: 100%;
             display: flex;
             flex-direction: column;
             padding: 10px;
@@ -66,11 +72,11 @@
         }
         .right-panel {
             width: 80%;
-            height: 100%;
             display: flex;
             flex-direction: column;
             padding: 10px;
             box-sizing: border-box;
+            height: 100%;
         }
         .row {
             display: flex;
@@ -139,6 +145,7 @@
         #canvasContainer {
             flex: 1;
             overflow: auto;
+            position: relative;
         }
         canvas {
             border: 1px solid #ffffff;
@@ -150,10 +157,12 @@
             flex: 1;
             overflow-y: auto;
             margin-bottom: 10px;
+            width: 80%;
+            margin-left: 40px;
         }
-        .line-item, .group-item {
+        .line-item {
             display: grid;
-            grid-template-columns: 30px auto 50px 40px 24px;
+            grid-template-columns: 30px auto 40px 40px 24px;
             align-items: center;
             padding: 5px;
             gap: 5px;
@@ -161,12 +170,22 @@
             font-family: Arial, sans-serif;
             font-size: 12px;
         }
-        .line-item input[type="text"], .group-item input[type="text"] {
+        .line-item input[type="text"] {
             padding: 5px;
             width: 40px;
             background-color: #333;
             color: #ffffff;
             border: 1px solid #555;
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+        }
+        .group-item {
+            display: grid;
+            grid-template-columns: 30px auto 50px 24px;
+            align-items: center;
+            padding: 5px;
+            gap: 5px;
+            color: #ffffff;
             font-family: Arial, sans-serif;
             font-size: 12px;
         }
@@ -190,20 +209,38 @@
         .line-item button:hover, .group-item button:hover {
             background-color: #cc0000;
         }
+        .line-item button:disabled, .group-item button:disabled {
+            background-color: #555;
+            cursor: not-allowed;
+        }
+        .clear-button {
+            display: flex;
+            justify-content: center;
+            margin-top: 10px;
+            width: 125px;
+            margin-left: 75px;
+        }
+        .clear-button button {
+            width: 60px;
+            padding: 8px;
+            font-size: 14px;
+        }
         .note {
             font-family: Arial, sans-serif;
-            font-size: 14px;
+            font-size: 12px;
             color: #cccccc;
-            padding: 10px;
             margin-top: 10px;
+            margin-left: 10px;
+            line-height: 1.4;
         }
         .signature {
             font-family: Arial, sans-serif;
-            font-size: 14px;
+            font-size: 12px;
             font-weight: bold;
             font-style: italic;
             color: #cccccc;
-            padding: 10px;
+            margin-top: 5px;
+            margin-left: 10px;
         }
         .input-group {
             display: flex;
@@ -228,77 +265,151 @@
             align-items: flex-start;
             gap: 5px;
         }
+        .tab-buttons {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+        .tab-button {
+            padding: 10px 24px;
+            background-color: #333;
+            color: #ffffff;
+            border: 1px solid #555;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: Arial, sans-serif;
+            font-size: 16px;
+            text-align: center;
+            min-width: 100px;
+        }
+        .tab-button.active {
+            background-color: #0056b3;
+            border-color: #ffffff;
+        }
+        .tab-button:hover {
+            background-color: #444;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        @media (max-width: 768px) {
+            #linesList, #groupsList {
+                width: 75%;
+                margin-left: 30px;
+            }
+            .clear-button {
+                width: 100px;
+                margin-left: 60px;
+            }
+            .clear-button button {
+                width: 50px;
+                font-size: 12px;
+            }
+            .note, .signature {
+                font-size: 10px;
+                margin-left: 5px;
+            }
+            .tab-button {
+                padding: 8px 16px;
+                font-size: 14px;
+                min-width: 80px;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="left-panel">
-        <div class="row">
-            <label>col x rows</label>
-            <div class="input-group">
-                <input type="number" id="cols" min="1" value="16">
-                <span>x</span>
-                <input type="number" id="rows" min="1" value="9">
+    <div class="main-content">
+        <div class="left-panel">
+            <div class="tab-buttons">
+                <button class="tab-button active" onclick="switchTab('settings')">Settings</button>
+                <button class="tab-button" onclick="switchTab('data')">Data</button>
+                <button class="tab-button" onclick="switchTab('power')">Power</button>
+            </div>
+            <div id="settings-tab" class="tab-content active">
+                <div class="row">
+                    <label>col x rows</label>
+                    <div class="input-group">
+                        <input type="number" id="cols" min="1" value="16">
+                        <span>x</span>
+                        <input type="number" id="rows" min="1" value="9">
+                    </div>
+                </div>
+                <div class="row">
+                    <label>W x H</label>
+                    <div class="input-group">
+                        <input type="number" id="moduleWidth" min="10" value="128">
+                        <span>x</span>
+                        <input type="number" id="moduleHeight" min="10" value="128">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="color-group">
+                        <label for="moduleColor">fill color:</label>
+                        <input type="number" id="moduleColor" min="1" max="25" step="1" value="17" class="color-select">
+                        <label for="moduleLabelColor">label color:</label>
+                        <input type="number" id="moduleLabelColor" min="1" max="25" step="1" value="9" class="color-select">
+                    </div>
+                </div>
+                <div class="compact-row">
+                    <div class="label-slider-pair">
+                        <label for="moduleLabelFontSize">label<br>size:</label>
+                        <input type="range" id="moduleLabelFontSize" min="10" max="100" step="1" value="25">
+                    </div>
+                    <div class="label-slider-pair">
+                        <label for="hatchDensity">hatch<br>density:</label>
+                        <input type="range" id="hatchDensity" min="2" max="18" step="1" value="10">
+                    </div>
+                </div>
+                <div class="row">
+                    <label for="connectionFont">data label font:</label>
+                    <select id="connectionFont">
+                        <option value="Arial, sans-serif">Arial</option>
+                        <option value="VT323, monospace">VT323</option>
+                        <option value="Roboto, sans-serif">Roboto</option>
+                        <option value="Open Sans, sans-serif">Open Sans</option>
+                        <option value="Lato, sans-serif">Lato</option>
+                        <option value="Montserrat, sans-serif">Montserrat</option>
+                        <option value="Source Sans Pro, sans-serif">Source Sans Pro</option>
+                        <option value="Raleway, sans-serif">Raleway</option>
+                        <option value="Merriweather, serif">Merriweather</option>
+                        <option value="Ubuntu, sans-serif" selected>Ubuntu</option>
+                    </select>
+                </div>
+                <div class="row">
+                    <button onclick="generateGrid()" title="generate">⚙</button>
+                    <button onclick="exportToPNG()" title="export">↓</button>
+                    <button onclick="zoomOut()" title="zoom out">-</button>
+                    <button onclick="zoomIn()" title="zoom in">+</button>
+                    <button onclick="exportToXML()" title="export XML">XML ↓</button>
+                    <button onclick="document.getElementById('xmlImport').click()" title="import XML">XML ↑</button>
+                </div>
+                <input type="file" id="xmlImport" accept=".xml" onchange="importFromXML(event)">
+                <div class="note">
+                    click to add modules to Data Selection, double-click to complete (Data Selection Complete)<br>
+                    ALT + click to add modules to Power Selection, ALT + double-click to complete (Power Selection Complete)<br>
+                    CTRL + click: 1st removes from Power Selection/Complete, 2nd from Data Selection/Complete, 3rd toggles visibility
+                </div>
+                <div class="signature">LedFlow v1.1.26 by Danny A. @ Blackout Minsk</div>
+            </div>
+            <div id="data-tab" class="tab-content">
+                <div id="linesList"></div>
+                <div class="clear-button">
+                    <button onclick="clearAllNames()" title="clear names">Clear</button>
+                </div>
+                <div class="signature">LedFlow v1.1.26 by Danny A. @ Blackout Minsk</div>
+            </div>
+            <div id="power-tab" class="tab-content">
+                <div id="groupsList"></div>
+                <div class="signature">LedFlow v1.1.26 by Danny A. @ Blackout Minsk</div>
             </div>
         </div>
-        <div class="row">
-            <label>W x H</label>
-            <div class="input-group">
-                <input type="number" id="moduleWidth" min="10" value="128">
-                <span>x</span>
-                <input type="number" id="moduleHeight" min="10" value="128">
+        <div class="right-panel">
+            <div id="canvasContainer">
+                <canvas id="gridCanvas"></canvas>
             </div>
-        </div>
-        <div class="row">
-            <div class="color-group">
-                <label for="moduleColor">fill color:</label>
-                <input type="number" id="moduleColor" min="1" max="25" step="1" value="17" class="color-select">
-                <label for="moduleLabelColor">label color:</label>
-                <input type="number" id="moduleLabelColor" min="1" max="25" step="1" value="9" class="color-select">
-            </div>
-        </div>
-        <div class="compact-row">
-            <div class="label-slider-pair">
-                <label for="moduleLabelFontSize">label<br>size:</label>
-                <input type="range" id="moduleLabelFontSize" min="10" max="100" step="1" value="25">
-            </div>
-            <div class="label-slider-pair">
-                <label for="hatchDensity">hatch<br>density:</label>
-                <input type="range" id="hatchDensity" min="2" max="18" step="1" value="10">
-            </div>
-        </div>
-        <div class="row">
-            <label for="connectionFont">data label font:</label>
-            <select id="connectionFont">
-                <option value="Arial, sans-serif">Arial</option>
-                <option value="VT323, monospace">VT323</option>
-                <option value="Roboto, sans-serif">Roboto</option>
-                <option value="Open Sans, sans-serif">Open Sans</option>
-                <option value="Lato, sans-serif">Lato</option>
-                <option value="Montserrat, sans-serif">Montserrat</option>
-                <option value="Source Sans Pro, sans-serif">Source Sans Pro</option>
-                <option value="Raleway, sans-serif">Raleway</option>
-                <option value="Merriweather, serif">Merriweather</option>
-                <option value="Ubuntu, sans-serif" selected>Ubuntu</option>
-            </select>
-        </div>
-        <div class="row">
-            <button onclick="generateGrid()" title="generate">⚙</button>
-            <button onclick="resetGrid()" title="reset">↻</button>
-            <button onclick="zoomOut()" title="zoom out">-</button>
-            <button onclick="zoomIn()" title="zoom in">+</button>
-            <button onclick="exportToPNG()" title="export">↓</button>
-            <button onclick="exportToXML()" title="export XML">XML ↓</button>
-            <button onclick="document.getElementById('xmlImport').click()" title="import XML">XML ↑</button>
-            <input type="file" id="xmlImport" accept=".xml" onchange="importFromXML(event)">
-        </div>
-        <div id="linesList"></div>
-        <div id="groupsList"></div>
-        <div class="note">click to add modules to Data line, double-click to complete selection<br>ALT + click to add modules to Power line, ALT + double-click to complete selection<br>CTRL + click to toggle modules visibility (removes from Power or Data line before)</div>
-        <div class="signature">LedFlow v1.1 by Danny A.</div>
-    </div>
-    <div class="right-panel">
-        <div id="canvasContainer">
-            <canvas id="gridCanvas"></canvas>
         </div>
     </div>
 
@@ -323,8 +434,7 @@
                     if (headerRowIndex === -1 || headerRowIndex > 25) {
                         headerRowIndex = 0;
                     }
-                    var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex));
-                    csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                    var csv = XLSX.utils.sheet_to_csv(XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)), { header: 1 });
                     return csv;
                 } catch (e) {
                     console.error(e);
@@ -337,6 +447,7 @@
     <script>
         const canvas = document.getElementById('gridCanvas');
         const ctx = canvas.getContext('2d');
+        const canvasContainer = document.getElementById('canvasContainer');
         const linesList = document.getElementById('linesList');
         const groupsList = document.getElementById('groupsList');
         let gridState = [];
@@ -350,11 +461,11 @@
         let removedIndices = [];
         let removedGroupIndices = [];
         let currentScale = 0.33;
-        const scales = [0.05, 0.10, 0.15, 0.20, 0.33, 0.50, 0.75, 1.00];
+        const scales = [0.10, 0.15, 0.20, 0.33, 0.50, 0.75, 1.00];
         const mainColors = [
             '#FF0000', '#006400', '#0000FF', '#FFA500', '#FF00FF', '#00FFFF',
-            '#FFA500', '#800080', '#008000', '#000080', '#808000', '#800000',
-            '#00FF7F', '#FF4500', '#4B0082', '#FFD700'
+            '#FFFF00', '#800080', '#008000', '#000080', '#800000', '#FF4500',
+            '#00FF00', '#FFD700', '#4B0082', '#00CED1'
         ];
         const groupColors = Array.from({ length: 25 }, (_, i) => {
             const value = (i + 1) * 10;
@@ -386,6 +497,22 @@
             document.getElementById('hatchDensity').value = 10;
         }
 
+        function switchTab(tab) {
+            activeTab = tab;
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('active');
+                if (button.textContent.toLowerCase() === tab) {
+                    button.classList.add('active');
+                }
+            });
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+                if (content.id === `${tab}-tab`) {
+                    content.classList.add('active');
+                }
+            });
+        }
+
         function getGridParams() {
             return {
                 cols: parseInt(document.getElementById('cols').value),
@@ -396,6 +523,24 @@
             };
         }
 
+        function updateScrollbars() {
+            const containerRect = canvasContainer.getBoundingClientRect();
+            const scaledWidth = canvas.width * currentScale;
+            const scaledHeight = canvas.height * currentScale;
+
+            if (scaledWidth <= containerRect.width && scaledHeight <= containerRect.height) {
+                canvasContainer.style.overflow = 'hidden';
+                canvas.style.position = 'absolute';
+                canvas.style.left = `${(containerRect.width - scaledWidth) / 2}px`;
+                canvas.style.top = `${(containerRect.height - scaledHeight) / 2}px`;
+            } else {
+                canvasContainer.style.overflow = 'auto';
+                canvas.style.position = 'static';
+                canvasContainer.scrollLeft = (scaledWidth - containerRect.width) / 2;
+                canvasContainer.scrollTop = (scaledHeight - containerRect.height) / 2;
+            }
+        }
+
         function generateGrid() {
             const { cols, rows, moduleWidth, moduleHeight } = getGridParams();
             initializeGrid(cols, rows);
@@ -403,6 +548,7 @@
             canvas.height = rows * moduleHeight;
             canvas.style.transform = `scale(${currentScale})`;
             drawGrid();
+            updateScrollbars();
         }
 
         function zoomOut() {
@@ -412,6 +558,7 @@
                 : scales[Math.max(currentIndex - 1, 0)];
             canvas.style.transform = `scale(${currentScale})`;
             drawGrid();
+            updateScrollbars();
         }
 
         function zoomIn() {
@@ -421,6 +568,7 @@
                 : scales[Math.min(currentIndex + 1, scales.length - 1)];
             canvas.style.transform = `scale(${currentScale})`;
             drawGrid();
+            updateScrollbars();
         }
 
         async function drawGrid() {
@@ -434,7 +582,6 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.lineWidth = 1;
 
-            // Draw modules
             for (let row = 0; row < rows; row++) {
                 for (let col = 0; col < cols; col++) {
                     if (gridState[row][col]) {
@@ -458,21 +605,20 @@
                 }
             }
 
-            // Draw main selections
             connections.forEach((conn, index) => {
                 drawMainSelection(conn.points, conn.color, moduleWidth, moduleHeight, index % 2 === 0);
             });
+
             if (currentConnection.length > 0) {
                 const isForwardSlash = (removedIndices[0] || connections.length) % 2 === 0;
                 drawMainSelection(currentConnection, currentColor, moduleWidth, moduleHeight, isForwardSlash);
             }
 
-            // Draw alt selection modules
             selectedModules.forEach(module => {
                 const x = module.col * moduleWidth;
                 const y = module.row * moduleHeight;
                 ctx.save();
-                ctx.strokeStyle = '#808080';
+                ctx.strokeStyle = '#5A5A5A';
                 ctx.lineWidth = 9;
                 ctx.setLineDash([22.5, 10]);
                 ctx.strokeRect(x + 4.5, y + 4.5, moduleWidth - 9, moduleHeight - 9);
@@ -480,8 +626,7 @@
                 ctx.restore();
             });
 
-            // Draw alt selection groups
-            selectedGroups.forEach(group => {
+            selectedGroups.forEach((group, index) => {
                 if (group.modules.length > 0) {
                     const edges = [];
                     const offset = 4.5;
@@ -516,7 +661,6 @@
                 }
             });
 
-            // Draw main selection labels
             ctx.save();
             ctx.globalAlpha = 1;
             for (let row = 0; row < rows; row++) {
@@ -525,7 +669,6 @@
                     const x = col * moduleWidth;
                     const y = row * moduleHeight;
 
-                    // Start label
                     const connStart = connections.find(c => c.points[0].row === row && c.points[0].col === col);
                     if (connStart && connStart.name) {
                         ctx.font = `bold ${connectionFontSize}px ${connectionFont}`;
@@ -554,7 +697,6 @@
                         ctx.fillText(connStart.name, labelX, labelY);
                     }
 
-                    // End label
                     const connEnd = connections.find(c => c.points[c.points.length - 1].row === row && c.points[c.points.length - 1].col === col);
                     if (connEnd && connEnd.endName) {
                         ctx.font = `bold ${connectionFontSize}px ${connectionFont}`;
@@ -577,7 +719,6 @@
                         ctx.fillText(connEnd.endName, labelX, labelY);
                     }
 
-                    // Current connection start label
                     if (currentConnection.length > 0 && currentConnection[0].row === row && currentConnection[0].col === col) {
                         ctx.font = `bold ${connectionFontSize}px ${connectionFont}`;
                         ctx.fillStyle = '#000000';
@@ -602,7 +743,7 @@
                                 labelY = y + 3 * moduleHeight / 4;
                             }
                         }
-                        const nextIndex = removedIndices.length > 0 ? removedIndices[0] : connections.length;
+                        const nextIndex = removedIndices[0] || connections.length;
                         ctx.fillText(`${nextIndex + 1}A`, labelX, labelY);
                     }
                 }
@@ -611,7 +752,7 @@
         }
 
         function drawMainSelection(points, color, moduleWidth, moduleHeight, isForwardSlash) {
-            if (points.length < 1) return;
+            if (points.length < 1 || !color) return;
             const step = 20 - parseInt(document.getElementById('hatchDensity').value);
             points.forEach(point => {
                 const x = point.col * moduleWidth;
@@ -680,42 +821,63 @@
 
         function updateLinesList() {
             linesList.innerHTML = '';
-            connections.forEach((conn, index) => {
-                if (conn.points.length < 2) return;
+            const maxRows = Math.max(16, connections.length);
+            for (let i = 0; i < maxRows; i++) {
                 const div = document.createElement('div');
                 div.className = 'line-item';
+                const conn = connections[i];
+                const isFilled = conn && conn.points.length >= 2;
+                const totalCabs = isFilled ? conn.points.length : 0;
                 div.innerHTML = `
-                    <span style="display: inline-block; background-color: red; padding: 2px; text-align: center;">${index + 1}</span>
-                    <span>${conn.name || `${index + 1}A`}/${conn.endName || `${index + 1}B`} (${conn.points.length} mod.)</span>
+                    <span style="display: inline-block; background-color: red; padding: 2px; text-align: center;">${i + 1}</span>
+                    <span>${isFilled ? `${(conn.name || '_')}/${(conn.endName || '_')} (${totalCabs} cab. total)` : '_'}</span>
                 `;
                 const mainInput = document.createElement('input');
                 mainInput.type = 'text';
-                mainInput.value = conn.name || `${index + 1}A`;
+                mainInput.value = isFilled ? (conn.name || '') : '';
                 mainInput.placeholder = 'main';
-                mainInput.onchange = () => {
-                    conn.name = mainInput.value;
-                    drawGrid();
-                    updateLinesList();
-                };
+                mainInput.disabled = !isFilled;
+                if (isFilled) {
+                    mainInput.onchange = () => {
+                        conn.name = mainInput.value;
+                        drawGrid();
+                        updateLinesList();
+                    };
+                }
                 div.appendChild(mainInput);
 
                 const endInput = document.createElement('input');
                 endInput.type = 'text';
-                endInput.value = conn.endName || '';
+                endInput.value = isFilled ? (conn.endName || '') : '';
                 endInput.placeholder = 'backup';
-                endInput.onchange = () => {
-                    conn.endName = endInput.value;
-                    drawGrid();
-                    updateLinesList();
-                };
+                endInput.disabled = !isFilled;
+                if (isFilled) {
+                    endInput.onchange = () => {
+                        conn.endName = endInput.value;
+                        drawGrid();
+                        updateLinesList();
+                    };
+                }
                 div.appendChild(endInput);
 
                 const removeBtn = document.createElement('button');
                 removeBtn.textContent = '✕';
-                removeBtn.onclick = () => removeConnection(index);
+                removeBtn.disabled = !isFilled;
+                if (isFilled) {
+                    removeBtn.onclick = () => removeConnection(i);
+                }
                 div.appendChild(removeBtn);
                 linesList.appendChild(div);
+            }
+        }
+
+        function clearAllNames() {
+            connections.forEach(conn => {
+                conn.name = '';
+                conn.endName = '';
             });
+            updateLinesList();
+            drawGrid();
         }
 
         function updateGroupsList() {
@@ -728,34 +890,67 @@
                 return aMinRow !== bMinRow ? aMinRow - bMinRow : aMinCol - bMinCol;
             });
             sortedGroups.forEach((group, sortedIndex) => {
-                if (group.modules.length === 0) return;
-                const originalIndex = selectedGroups.findIndex(g => g.index === group.index);
+                group.index = sortedIndex + 1;
+            });
+            selectedGroups = sortedGroups;
+            const maxRows = Math.max(16, selectedGroups.length);
+            for (let i = 0; i < maxRows; i++) {
+                const group = selectedGroups[i];
+                const isFilled = group && group.modules.length > 0;
                 const div = document.createElement('div');
                 div.className = 'group-item';
-                div.innerHTML = `
-                    <span style="display: inline-block; background-color: blue; padding: 2px; text-align: center;">${group.index}</span>
-                    <span>${group.modules.length} mod.</span>
-                `;
+                const numberSpan = document.createElement('span');
+                numberSpan.style.cssText = 'display: inline-block; background-color: blue; padding: 2px; text-align: center;';
+                numberSpan.textContent = i + 1;
+                div.appendChild(numberSpan);
+                const modulesSpan = document.createElement('span');
+                if (isFilled) {
+                    const minRow = Math.min(...group.modules.map(m => m.row));
+                    const maxRow = Math.max(...group.modules.map(m => m.row));
+                    const minCol = Math.min(...group.modules.filter(m => m.row === minRow).map(m => m.col));
+                    const maxCol = Math.max(...group.modules.filter(m => m.row === maxRow).map(m => m.col));
+                    const rangeText = `${minRow + 1}.${minCol + 1}-${maxRow + 1}.${maxCol + 1}`;
+                    const totalCabs = group.modules.length;
+                    modulesSpan.textContent = `${rangeText} (${totalCabs} cab. total)`;
+                } else {
+                    modulesSpan.textContent = '_';
+                }
+                div.appendChild(modulesSpan);
                 const colorInput = document.createElement('input');
                 colorInput.type = 'number';
                 colorInput.min = '1';
                 colorInput.max = '25';
                 colorInput.step = '1';
-                colorInput.value = group.colorIndex;
-                colorInput.oninput = () => {
-                    const value = Math.max(1, Math.min(25, parseInt(colorInput.value)));
-                    selectedGroups[originalIndex].colorIndex = value;
-                    colorInput.value = value;
-                    drawGrid();
-                };
+                colorInput.value = isFilled ? group.colorIndex : '';
+                colorInput.disabled = !isFilled;
+                if (isFilled) {
+                    colorInput.oninput = () => {
+                        const value = Math.max(1, Math.min(25, parseInt(colorInput.value)));
+                        group.colorIndex = value;
+                        colorInput.value = value;
+                        drawGrid();
+                    };
+                }
                 div.appendChild(colorInput);
-                div.appendChild(document.createElement('span'));
                 const removeBtn = document.createElement('button');
                 removeBtn.textContent = '✕';
-                removeBtn.onclick = () => removeGroup(originalIndex);
+                removeBtn.disabled = !isFilled;
+                if (isFilled) {
+                    removeBtn.onclick = () => removeGroup(i);
+                }
                 div.appendChild(removeBtn);
                 groupsList.appendChild(div);
-            });
+            }
+        }
+
+        function removeGroup(index) {
+            if (!removedGroupIndices.includes(index)) {
+                removedGroupIndices.push(index);
+                removedGroupIndices.sort((a, b) => a - b);
+            }
+            selectedGroups.splice(index, 1);
+            updateGroupsList();
+            drawGrid();
         }
 
         function removeConnection(index) {
@@ -769,26 +964,13 @@
             drawGrid();
         }
 
-        function removeGroup(index) {
-            if (!removedGroupIndices.includes(selectedGroups[index].index)) {
-                removedGroupIndices.push(selectedGroups[index].index);
-                removedGroupIndices.sort((a, b) => a - b);
-            }
-            selectedGroups.splice(index, 1);
-            updateGroupsList();
-            drawGrid();
-        }
-
         function renumberConnections() {
-            connections.forEach((conn, index) => {
-                conn.name = `${index + 1}A`;
-                conn.endName = `${index + 1}B`;
-            });
             lineCounter = connections.length + 1;
         }
 
         function isModuleInConnection(row, col) {
-            return connections.some(conn => conn.points.some(p => p.row === row && p.col === col));
+            return connections.some(conn => conn.points.some(p => p.row === row && p.col === col)) ||
+                   currentConnection.some(p => p.row === row && p.col === col);
         }
 
         function removePointFromConnections(row, col) {
@@ -843,12 +1025,58 @@
         }
 
         function doesPathIntersectMainSelection(newPoints) {
-            return connections.reduce((acc, conn, index) => {
-                if (newPoints.some(p => conn.points.some(cp => cp.row === p.row && cp.col === p.col))) {
-                    acc.push(index);
-                }
-                return acc;
-            }, []);
+            const { moduleWidth, moduleHeight } = getGridParams();
+            const intersectingIndices = [];
+            for (let i = 0; i < newPoints.length - 1; i++) {
+                const p1 = {
+                    x: newPoints[i].col * moduleWidth + moduleWidth / 2,
+                    y: newPoints[i].row * moduleHeight + moduleHeight / 2
+                };
+                const p2 = {
+                    x: newPoints[i + 1].col * moduleWidth + moduleWidth / 2,
+                    y: newPoints[i + 1].row * moduleHeight + moduleHeight / 2
+                };
+                connections.forEach((conn, index) => {
+                    for (let j = 0; j < conn.points.length - 1; j++) {
+                        const p3 = {
+                            x: conn.points[j].col * moduleWidth + moduleWidth / 2,
+                            y: conn.points[j].row * moduleHeight + moduleHeight / 2
+                        };
+                        const p4 = {
+                            x: conn.points[j + 1].col * moduleWidth + moduleWidth / 2,
+                            y: conn.points[j + 1].row * moduleHeight + moduleHeight / 2
+                        };
+                        if (doLineSegmentsIntersect(p1, p2, p3, p4) || 
+                            newPoints.some(p => conn.points.some(cp => cp.row === p.row && cp.col === p.col))) {
+                            if (!intersectingIndices.includes(index)) {
+                                intersectingIndices.push(index);
+                            }
+                        }
+                    }
+                });
+            }
+            return intersectingIndices;
+        }
+
+        function doLineSegmentsIntersect(p1, p2, p3, p4) {
+            function orientation(p, q, r) {
+                const val = (q.y - p.y) * (r.x - q.x) - (q.x - p.x) * (r.y - q.y);
+                return val === 0 ? 0 : val > 0 ? 1 : 2;
+            }
+            function onSegment(p, q, r) {
+                return q.x <= Math.max(p.x, r.x) && q.x >= Math.min(p.x, r.x) &&
+                       q.y <= Math.max(p.y, r.y) && q.y >= Math.min(p.y, r.y);
+            }
+            const o1 = orientation(p1, p2, p3);
+            const o2 = orientation(p1, p2, p4);
+            const o3 = orientation(p3, p4, p1);
+            const o4 = orientation(p3, p4, p2);
+            if (o1 !== o2 && o3 !== o4) return true;
+            if (o1 === 0 && onSegment(p1, p3, p2)) return true;
+            if (o2 === 0 && onSegment(p1, p4, p2)) return true;
+            if (o3 === 0 && onSegment(p3, p1, p4)) return true;
+            if (o4 === 0 && onSegment(p3, p2, p4)) return true;
+            return false;
         }
 
         function areModulesAdjacent(modules) {
@@ -909,6 +1137,13 @@
                 newGroup.some(newModule => newModule.row === module.row && newModule.col === module.col));
         }
 
+        function getUniqueColorIndex() {
+            if (removedIndices.length > 0) {
+                return removedIndices.shift();
+            }
+            return connections.length;
+        }
+
         function toggleModule(event) {
             const { cols, rows, moduleWidth, moduleHeight } = getGridParams();
             const rect = canvas.getBoundingClientRect();
@@ -931,75 +1166,70 @@
                     }
                 }
             } else if (event.ctrlKey) {
-                const module = { row, col };
+                let changesMade = false;
+
                 const moduleIndex = selectedModules.findIndex(p => p.row === row && p.col === col);
-                if (moduleIndex !== -1) {
-                    selectedModules.splice(moduleIndex, 1);
-                    drawGrid();
-                } else {
-                    let removedFromGroup = false;
-                    selectedGroups = selectedGroups.map(group => {
-                        const groupIndex = group.modules.findIndex(p => p.row === row && p.col === col);
-                        if (groupIndex !== -1) {
-                            group.modules.splice(groupIndex, 1);
-                            removedFromGroup = true;
-                        }
-                        return group;
-                    }).filter(g => g.modules.length > 0);
-                    if (removedFromGroup) {
+                const inGroups = selectedGroups.some(g => g.modules.some(p => p.row === row && p.col === col));
+                if (moduleIndex !== -1 || inGroups) {
+                    if (moduleIndex !== -1) {
+                        selectedModules.splice(moduleIndex, 1);
+                        changesMade = true;
+                    }
+                    const originalGroupCount = selectedGroups.length;
+                    selectedGroups = selectedGroups.map(group => ({
+                        ...group,
+                        modules: group.modules.filter(p => p.row !== row || p.col !== col)
+                    })).filter(g => g.modules.length > 0);
+                    if (selectedGroups.length !== originalGroupCount || selectedGroups.some(g => g.modules.length !== originalGroupCount)) {
                         updateGroupsList();
-                        drawGrid();
-                    } else if (isModuleInConnection(row, col)) {
+                        changesMade = true;
+                    }
+                } else {
+                    const inConnections = isModuleInConnection(row, col);
+                    if (inConnections) {
                         removePointFromConnections(row, col);
-                        drawGrid();
-                    } else if (!selectedModules.some(p => p.row === row && p.col === col) &&
-                               !selectedGroups.some(g => g.modules.some(p => p.row === row && p.col === col))) {
-                        gridState[row][col] = !gridState[row][col];
-                        if (!gridState[row][col]) {
-                            removePointFromConnections(row, col);
-                            selectedModules = selectedModules.filter(p => p.row !== row || p.col !== col);
-                            selectedGroups = selectedGroups.map(g => ({
-                                ...g,
-                                modules: g.modules.filter(p => p.row !== row || p.col !== col)
-                            })).filter(g => g.modules.length > 0);
-                            updateGroupsList();
+                        changesMade = true;
+                    } else {
+                        if (gridState[row][col] !== undefined) {
+                            gridState[row][col] = !gridState[row][col];
+                            changesMade = true;
                         }
-                        drawGrid();
                     }
                 }
-            } else if (gridState[row][col]) {
-                const point = { row, col, color: currentColor };
-                if (currentConnection.length === 0) {
-                    currentConnection = [point];
-                    const nextIndex = removedIndices.length > 0 ? removedIndices[0] : connections.length;
-                    currentColor = mainColors[nextIndex % 16];
+
+                if (changesMade) {
                     drawGrid();
-                } else {
-                    // Allow adding the point even if it's the last in currentConnection
-                    const lastPoint = currentConnection[currentConnection.length - 1];
-                    if (lastPoint.row === row && lastPoint.col === col) {
-                        // If clicking the last point, do nothing unless double-click (handled separately)
-                        return;
-                    }
-                    if (!isModuleInConnection(row, col)) {
-                        const newPoints = interpolatePoints(lastPoint, point);
-                        const intersectingIndices = doesPathIntersectMainSelection(newPoints);
-                        if (intersectingIndices.length > 0) {
-                            intersectingIndices.sort((a, b) => b - a);
-                            intersectingIndices.forEach(index => {
-                                if (!removedIndices.includes(index)) removedIndices.push(index);
-                                connections.splice(index, 1);
-                            });
-                            removedIndices.sort((a, b) => a - b);
-                            renumberConnections();
-                            updateLinesList();
-                        }
-                        newPoints.forEach(p => {
-                            if (!currentConnection.some(cp => cp.row === p.row && cp.col === p.col)) {
-                                currentConnection.push(p);
-                            }
-                        });
+                }
+            } else {
+                const point = { row, col, color: currentColor };
+                if (!isModuleInConnection(row, col) && !currentConnection.some(p => p.row === row && p.col === col)) {
+                    if (currentConnection.length === 0) {
+                        const colorIndex = getUniqueColorIndex();
+                        currentConnection = [point];
+                        currentColor = mainColors[colorIndex % mainColors.length];
                         drawGrid();
+                    } else {
+                        const lastPoint = currentConnection[currentConnection.length - 1];
+                        const newPoints = interpolatePoints(lastPoint, point);
+                        if (newPoints.length > 0) {
+                            const intersectingIndices = doesPathIntersectMainSelection(newPoints);
+                            if (intersectingIndices.length > 0) {
+                                intersectingIndices.sort((a, b) => b - a);
+                                intersectingIndices.forEach(index => {
+                                    if (!removedIndices.includes(index)) removedIndices.push(index);
+                                    connections.splice(index, 1);
+                                });
+                                removedIndices.sort((a, b) => a - b);
+                                renumberConnections();
+                                updateLinesList();
+                            }
+                            newPoints.forEach(p => {
+                                if (!currentConnection.some(cp => cp.row === p.row && cp.col === p.col)) {
+                                    currentConnection.push({ ...p, color: currentColor });
+                                }
+                            });
+                            drawGrid();
+                        }
                     }
                 }
             }
@@ -1030,19 +1260,21 @@
                 }
                 selectedGroups = selectedGroups.filter(group => !doesGroupIntersectRectangle(group, newGroup));
                 const groupIndex = removedGroupIndices.length > 0 ? removedGroupIndices.shift() : groupCounter++;
-                const colorIndex = (groupIndex - 1) % 3 + 4; // Indices 4, 5, 6
+                const colorIndex = (groupIndex - 1) % 3 + 4;
                 selectedGroups.push({ index: groupIndex, modules: [...newGroup], colorIndex });
                 selectedModules = [];
                 updateGroupsList();
                 drawGrid();
-            } else if (currentConnection.length >= 1 && currentConnection[currentConnection.length - 1].row === row && currentConnection[currentConnection.length - 1].col === col) {
-                completeCurrentConnection();
-                drawGrid();
+            } else if (currentConnection.length >= 1) {
+                if (currentConnection.some(p => p.row === row && p.col === col)) {
+                    completeCurrentConnection();
+                    drawGrid();
+                }
             }
         }
 
         function completeCurrentConnection() {
-            if (currentConnection.length < 2) {
+            if (currentConnection.length < 2 || !currentColor) {
                 currentConnection = [];
                 currentColor = null;
                 return;
@@ -1056,11 +1288,12 @@
                 });
                 removedIndices.sort((a, b) => a - b);
                 renumberConnections();
+                updateLinesList();
             }
-            const connectionIndex = removedIndices.length > 0 ? removedIndices.shift() : connections.length;
+            const connectionIndex = getUniqueColorIndex();
             connections.push({
                 points: [...currentConnection],
-                color: currentColor,
+                color: mainColors[connectionIndex % mainColors.length],
                 name: `${connectionIndex + 1}A`,
                 endName: `${connectionIndex + 1}B`
             });
@@ -1069,12 +1302,6 @@
             currentColor = null;
             renumberConnections();
             updateLinesList();
-        }
-
-        function resetGrid() {
-            const { cols, rows } = getGridParams();
-            initializeGrid(cols, rows);
-            canvas.style.transform = `scale(${currentScale})`;
             drawGrid();
         }
 
@@ -1087,10 +1314,11 @@
         }
 
         function exportToXML() {
+            const { cols, rows } = getGridParams();
             const xml = new XMLSerializer().serializeToString(createXML());
             const blob = new Blob([xml], { type: 'application/xml' });
             const link = document.createElement('a');
-            link.download = 'grid_settings.xml';
+            link.download = `grid_settings_${cols}x${rows}.xml`;
             link.href = URL.createObjectURL(blob);
             link.click();
         }
@@ -1134,9 +1362,16 @@
             root.appendChild(mainSelections);
 
             const altGroups = xml.createElement('altGroups');
-            selectedGroups.forEach(group => {
+            const sortedGroups = [...selectedGroups].sort((a, b) => {
+                const aMinRow = Math.min(...a.modules.map(m => m.row));
+                const aMinCol = Math.min(...a.modules.filter(m => m.row === aMinRow).map(m => m.col));
+                const bMinRow = Math.min(...b.modules.map(m => m.row));
+                const bMinCol = Math.min(...b.modules.filter(m => m.row === bMinRow).map(m => m.col));
+                return aMinRow !== bMinRow ? aMinRow - bMinRow : aMinCol - bMinCol;
+            });
+            sortedGroups.forEach((group, index) => {
                 const g = xml.createElement('group');
-                g.setAttribute('index', group.index);
+                g.setAttribute('index', index + 1);
                 g.setAttribute('colorIndex', group.colorIndex);
                 group.modules.forEach(module => {
                     const m = xml.createElement('module');
@@ -1199,18 +1434,32 @@
                 selectedGroups = [];
                 const altGroups = xml.getElementsByTagName('altGroups')[0];
                 const groups = altGroups.getElementsByTagName('group');
-                for (let g of groups) {
+                Array.from(groups).sort((a, b) => {
+                    const aModules = Array.from(a.getElementsByTagName('module')).map(m => ({
+                        row: parseInt(m.getAttribute('row')),
+                        col: parseInt(m.getAttribute('col'))
+                    }));
+                    const bModules = Array.from(b.getElementsByTagName('module')).map(m => ({
+                        row: parseInt(m.getAttribute('row')),
+                        col: parseInt(m.getAttribute('col'))
+                    }));
+                    const aMinRow = Math.min(...aModules.map(m => m.row));
+                    const aMinCol = Math.min(...aModules.filter(m => m.row === aMinRow).map(m => m.col));
+                    const bMinRow = Math.min(...bModules.map(m => m.row));
+                    const bMinCol = Math.min(...bModules.filter(m => m.row === bMinRow).map(m => m.col));
+                    return aMinRow !== bMinRow ? aMinRow - bMinRow : aMinCol - bMinCol;
+                }).forEach((g, index) => {
                     const modules = [];
                     const ms = g.getElementsByTagName('module');
                     for (let m of ms) {
                         modules.push({ row: parseInt(m.getAttribute('row')), col: parseInt(m.getAttribute('col')) });
                     }
                     selectedGroups.push({
-                        index: parseInt(g.getAttribute('index')),
+                        index: index + 1,
                         modules,
                         colorIndex: parseInt(g.getAttribute('colorIndex'))
                     });
-                }
+                });
                 updateGroupsList();
                 drawGrid();
             };
@@ -1232,6 +1481,7 @@
         document.getElementById('connectionFont').addEventListener('change', drawGrid);
         canvas.addEventListener('click', toggleModule);
         canvas.addEventListener('dblclick', handleDoubleClick);
+        window.addEventListener('resize', updateScrollbars);
         generateGrid();
     </script>
 </body>
