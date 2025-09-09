@@ -42,9 +42,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LedFlow v1.1.26</title>
+    <title>LedFlow v1.4.4</title>
+    <link rel="icon" type="image/png" href="favicon.png">
     <link href="https://fonts.googleapis.com/css2?family=VT323&family=Roboto&family=Open+Sans&family=Lato&family=Montserrat&family=Source+Sans+Pro&family=Raleway&family=Merriweather&family=Ubuntu&display=swap" rel="stylesheet">
-        <link rel="icon" type="image/png" href="favicon.png">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -129,18 +129,19 @@
             cursor: pointer;
         }
         button {
-            width: 40px;
+            width: 50px;
             padding: 8px;
             cursor: pointer;
-            background-color: #0056b3;
+            background: linear-gradient(to right, #666, #0056b3);
             color: #ffffff;
             border: none;
             border-radius: 4px;
             text-align: center;
             font-family: Arial, sans-serif;
+            transition: background 0.3s;
         }
         button:hover {
-            background-color: #003d80;
+            background: linear-gradient(to right, #777, #003d80);
         }
         #canvasContainer {
             flex: 1;
@@ -177,11 +178,11 @@
             color: #ffffff;
             border: 1px solid #555;
             font-family: Arial, sans-serif;
-            font-size: 12px;
+            font-size: 9px;
         }
         .group-item {
             display: grid;
-            grid-template-columns: 30px auto 50px 24px;
+            grid-template-columns: 30px auto 40px 24px;
             align-items: center;
             padding: 5px;
             gap: 5px;
@@ -191,12 +192,12 @@
         }
         .group-item input[type="number"] {
             padding: 5px;
-            width: 50px;
+            width: 40px;
             background-color: #333;
             color: #ffffff;
             border: 1px solid #555;
             font-family: Arial, sans-serif;
-            font-size: 12px;
+            font-size: 9px;
         }
         .line-item button, .group-item button {
             padding: 3px;
@@ -213,17 +214,19 @@
             background-color: #555;
             cursor: not-allowed;
         }
-        .clear-button {
+        .default-names-checkbox {
             display: flex;
-            justify-content: center;
+            align-items: center;
             margin-top: 10px;
-            width: 125px;
-            margin-left: 75px;
+            margin-left: 0;
         }
-        .clear-button button {
-            width: 60px;
-            padding: 8px;
-            font-size: 14px;
+        .default-names-checkbox input[type="checkbox"] {
+            margin-right: 5px;
+            transform: scale(1.2);
+        }
+        .default-names-checkbox label {
+            font-size: 10px;
+            margin: 0;
         }
         .note {
             font-family: Arial, sans-serif;
@@ -241,6 +244,8 @@
             color: #cccccc;
             margin-top: 5px;
             margin-left: 10px;
+            position: absolute;
+            bottom: 10px;
         }
         .input-group {
             display: flex;
@@ -291,6 +296,8 @@
         }
         .tab-content {
             display: none;
+            position: relative;
+            flex: 1;
         }
         .tab-content.active {
             display: block;
@@ -300,13 +307,8 @@
                 width: 75%;
                 margin-left: 30px;
             }
-            .clear-button {
-                width: 100px;
-                margin-left: 60px;
-            }
-            .clear-button button {
-                width: 50px;
-                font-size: 12px;
+            .default-names-checkbox {
+                margin-left: 0;
             }
             .note, .signature {
                 font-size: 10px;
@@ -364,21 +366,6 @@
                     </div>
                 </div>
                 <div class="row">
-                    <label for="connectionFont">data label font:</label>
-                    <select id="connectionFont">
-                        <option value="Arial, sans-serif">Arial</option>
-                        <option value="VT323, monospace">VT323</option>
-                        <option value="Roboto, sans-serif">Roboto</option>
-                        <option value="Open Sans, sans-serif">Open Sans</option>
-                        <option value="Lato, sans-serif">Lato</option>
-                        <option value="Montserrat, sans-serif">Montserrat</option>
-                        <option value="Source Sans Pro, sans-serif">Source Sans Pro</option>
-                        <option value="Raleway, sans-serif">Raleway</option>
-                        <option value="Merriweather, serif">Merriweather</option>
-                        <option value="Ubuntu, sans-serif" selected>Ubuntu</option>
-                    </select>
-                </div>
-                <div class="row">
                     <button onclick="generateGrid()" title="generate">⚙</button>
                     <button onclick="exportToPNG()" title="export">↓</button>
                     <button onclick="zoomOut()" title="zoom out">-</button>
@@ -388,24 +375,37 @@
                 </div>
                 <input type="file" id="xmlImport" accept=".xml" onchange="importFromXML(event)">
                 <div class="note">
-                        <br>
                     click to add LED cabinets to Data Line, double-click to complete selection<br>
                     ALT + click to add LED cabinets to Power Line, ALT + double-click to complete selection<br>
-                    CTRL + click to toggle cabinet visibility (+ removes LED cabinet from Data/Power Line)<br>
+                    CTRL + click to toggle cabinet visibility (+ removes LED cabinet from Data/Power Line)
                 </div>
-                <div class="signature">LedFlow v1.1.26 by Danny A. @ Blackout Minsk</div>
             </div>
             <div id="data-tab" class="tab-content">
                 <div id="linesList"></div>
-                <div class="clear-button">
-                    <button onclick="clearAllNames()" title="clear names">Clear</button>
+                <div class="default-names-checkbox">
+                    <input type="checkbox" id="useDefaultNames" checked onchange="handleDefaultNamesChange()">
+                    <label for="useDefaultNames">Use default names</label>
                 </div>
-                <div class="signature">LedFlow v1.1.26 by Danny A. @ Blackout Minsk</div>
+                <div class="default-names-checkbox">
+                    <label for="connectionFont">Data Line font:</label>
+                    <select id="connectionFont" style="font-size: 10px; padding: 2px;">
+                        <option value="Arial, sans-serif" style="font-size: 10px;">Arial</option>
+                        <option value="VT323, monospace" style="font-size: 10px;">VT323</option>
+                        <option value="Roboto, sans-serif" style="font-size: 10px;">Roboto</option>
+                        <option value="Open Sans, sans-serif" style="font-size: 10px;">Open Sans</option>
+                        <option value="Lato, sans-serif" style="font-size: 10px;">Lato</option>
+                        <option value="Montserrat, sans-serif" style="font-size: 10px;">Montserrat</option>
+                        <option value="Source Sans Pro, sans-serif" style="font-size: 10px;">Source Sans Pro</option>
+                        <option value="Raleway, sans-serif" style="font-size: 10px;">Raleway</option>
+                        <option value="Merriweather, serif" style="font-size: 10px;" selected>Merriweather</option>
+                        <option value="Ubuntu, sans-serif" style="font-size: 10px;">Ubuntu</option>
+                    </select>
+                </div>
             </div>
             <div id="power-tab" class="tab-content">
                 <div id="groupsList"></div>
-                <div class="signature">LedFlow v1.1.26 by Danny A. @ Blackout Minsk</div>
             </div>
+            <div class="signature">LedFlow v1.4.4 by Danny A. @ Blackout Minsk</div>
         </div>
         <div class="right-panel">
             <div id="canvasContainer">
@@ -810,14 +810,19 @@
             const dx = x2 - x1;
             const dy = y2 - y1;
             const angle = Math.atan2(dy, dx);
-            ctx.strokeStyle = '#000000';
-            ctx.lineWidth = lineWidth;
+            const headHeight = headLength; // Equilateral triangle height
+            const headBase = headHeight * Math.sqrt(3) / 2; // Base of equilateral triangle
+
+            // Draw filled equilateral triangle arrow
+            ctx.save();
+            ctx.fillStyle = '#000000';
             ctx.beginPath();
             ctx.moveTo(x2, y2);
-            ctx.lineTo(x2 - headLength * Math.cos(angle - Math.PI / 6), y2 - headLength * Math.sin(angle - Math.PI / 6));
-            ctx.moveTo(x2, y2);
-            ctx.lineTo(x2 - headLength * Math.cos(angle + Math.PI / 6), y2 - headLength * Math.sin(angle + Math.PI / 6));
-            ctx.stroke();
+            ctx.lineTo(x2 - headHeight * Math.cos(angle), y2 - headHeight * Math.sin(angle));
+            ctx.lineTo(x2 - headHeight * Math.cos(angle) + headBase * Math.sin(angle) / 2, y2 - headHeight * Math.sin(angle) - headBase * Math.cos(angle) / 2);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
         }
 
         function updateLinesList() {
@@ -830,7 +835,7 @@
                 const isFilled = conn && conn.points.length >= 2;
                 const totalCabs = isFilled ? conn.points.length : 0;
                 div.innerHTML = `
-                    <span style="display: inline-block; background-color: red; padding: 2px; text-align: center;">${i + 1}</span>
+                    <span style="display: inline-block; background-color: blue; padding: 2px; text-align: center;">${i + 1}</span>
                     <span>${isFilled ? `${(conn.name || '_')}/${(conn.endName || '_')} (${totalCabs} cab. total)` : '_'}</span>
                 `;
                 const mainInput = document.createElement('input');
@@ -872,13 +877,28 @@
             }
         }
 
-        function clearAllNames() {
-            connections.forEach(conn => {
-                conn.name = '';
-                conn.endName = '';
-            });
-            updateLinesList();
-            drawGrid();
+        function handleDefaultNamesChange() {
+            const checkbox = document.getElementById('useDefaultNames');
+            if (!checkbox.checked) {
+                connections.forEach(conn => {
+                    conn.name = '';
+                    conn.endName = '';
+                });
+                updateLinesList();
+                drawGrid();
+            } else {
+                if (confirm("This will overwrite your Data Lines names with default ones.")) {
+                    connections.forEach((conn, index) => {
+                        const connectionIndex = removedIndices.includes(index) ? removedIndices.indexOf(index) : index;
+                        conn.name = `${connectionIndex + 1}A`;
+                        conn.endName = `${connectionIndex + 1}B`;
+                    });
+                    updateLinesList();
+                    drawGrid();
+                } else {
+                    checkbox.checked = false;
+                }
+            }
         }
 
         function updateGroupsList() {
@@ -901,7 +921,7 @@
                 const div = document.createElement('div');
                 div.className = 'group-item';
                 const numberSpan = document.createElement('span');
-                numberSpan.style.cssText = 'display: inline-block; background-color: blue; padding: 2px; text-align: center;';
+                numberSpan.style.cssText = 'display: inline-block; background-color: red; padding: 2px; text-align: center;';
                 numberSpan.textContent = i + 1;
                 div.appendChild(numberSpan);
                 const modulesSpan = document.createElement('span');
@@ -1292,11 +1312,12 @@
                 updateLinesList();
             }
             const connectionIndex = getUniqueColorIndex();
+            const useDefaultNames = document.getElementById('useDefaultNames').checked;
             connections.push({
                 points: [...currentConnection],
                 color: mainColors[connectionIndex % mainColors.length],
-                name: `${connectionIndex + 1}A`,
-                endName: `${connectionIndex + 1}B`
+                name: useDefaultNames ? `${connectionIndex + 1}A` : '',
+                endName: useDefaultNames ? `${connectionIndex + 1}B` : ''
             });
             lineCounter = Math.max(lineCounter, connections.length + 1);
             currentConnection = [];
