@@ -524,17 +524,17 @@
                         <input type="range" id="hatchDensity" min="2" max="18" step="1" value="10">
                     </div>
                 </div>
-                <div class="row">
-                    <button onclick="generateGrid()" title="generate">вљ™</button>
-                    <button onclick="resetGrid()" title="reset">в†є</button>
+               <div class="row">
+                    <button onclick="generateGrid()" title="generate">⚙</button>
+                    <button onclick="resetGrid()" title="reset">↺</button>
                     <button onclick="zoomOut()" title="zoom out">-</button>
                     <button onclick="zoomIn()" title="zoom in">+</button>
                 </div>
                 <div class="row">
-                    <button onclick="exportToXML()" title="export XML">XML в†“</button>
-                    <button onclick="document.getElementById('xmlImport').click()" title="import XML">XML в†‘</button>
-                    <button onclick="exportToPNG()" title="export PNG">PNG в†“</button>
-                    <button onclick="exportToSVG()" title="export SVG">SVG в†“</button>
+                    <button onclick="exportToXML()" title="export XML">XML ↓</button>
+                    <button onclick="document.getElementById('xmlImport').click()" title="import XML">XML ↑</button>
+                    <button onclick="exportToPNG()" title="export PNG">PNG ↓</button>
+                    <button onclick="exportToSVG()" title="export SVG">SVG ↓</button>
                 </div>
                 <input type="file" id="xmlImport" accept=".xml" onchange="importFromXML(event)">
                 <div class="note">
