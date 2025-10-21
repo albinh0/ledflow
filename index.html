@@ -42,9 +42,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LedFlow v1.4.4</title>
+    <title>LedFlow v1.7</title>
     <link rel="icon" type="image/png" href="favicon.png">
-    <link href="https://fonts.googleapis.com/css2?family=VT323&family=Roboto&family=Open+Sans&family=Lato&family=Montserrat&family=Source+Sans+Pro&family=Raleway&family=Merriweather&family=Ubuntu&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Homemade+Apple&family=Lato&family=Merriweather&family=Raleway&family=Source+Sans+Pro&family=VT323&family=Micro+5&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -61,6 +61,7 @@
             flex: 1;
             flex-direction: row;
             overflow: hidden;
+            position: relative;
         }
         .left-panel {
             width: 20%;
@@ -69,14 +70,54 @@
             padding: 10px;
             box-sizing: border-box;
             overflow-y: auto;
+            position: relative;
+            padding-bottom: 60px;
+        }
+        .left-panel.collapsed {
+            width: 0;
+            display: none;
         }
         .right-panel {
-            width: 80%;
+            width: calc(80% - 40px);
             display: flex;
             flex-direction: column;
             padding: 10px;
             box-sizing: border-box;
             height: 100%;
+            margin-left: 40px;
+        }
+        .right-panel.collapsed {
+            width: calc(100% - 50px);
+        }
+        .collapse-button {
+            width: 30px;
+            height: 30px;
+            background: linear-gradient(to right, #666, #0056b3);
+            color: #ffffff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            position: absolute;
+            top: 10px;
+            left: 20%;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s;
+        }
+        .collapse-button.collapsed {
+            left: 0;
+        }
+        .collapse-button:hover {
+            background: linear-gradient(to right, #777, #003d80);
+        }
+        .collapse-button::before {
+            content: '<';
+            font-size: 16px;
+        }
+        .collapse-button.collapsed::before {
+            content: '>';
         }
         .row {
             display: flex;
@@ -94,12 +135,19 @@
         .row label {
             width: 90px;
             color: #ffffff;
+            font-size: 12px;
         }
         .compact-row label {
             width: 60px;
             color: #ffffff;
             font-size: 12px;
             line-height: 1.2;
+        }
+        .color-group label {
+            flex: 0 0 auto;
+            width: auto;
+            color: #ffffff;
+            font-size: 12px;
         }
         .row input[type="number"] {
             padding: 5px;
@@ -109,8 +157,24 @@
             border: 1px solid #555;
             font-family: Arial, sans-serif;
         }
-        .row input[type="number"].color-select, .compact-row input[type="number"].color-select {
-            width: 50px;
+        .row select.color-select {
+            width: 100px;
+            height: 30px;
+            padding: 5px;
+            background-color: #333;
+            color: #ffffff;
+            border: 1px solid #555;
+            font-family: Arial, sans-serif;
+            cursor: pointer;
+        }
+        .row select.color-select option {
+            background-color: #333;
+            color: #ffffff;
+            padding: 5px;
+        }
+        .row select.color-select option::before {
+            content: "в–  ";
+            font-size: 16px;
         }
         .row input[type="range"], .compact-row input[type="range"] {
             width: 100px;
@@ -119,9 +183,9 @@
         .compact-row input[type="range"] {
             font-size: 12px;
         }
-        .row select {
+        .row select:not(.color-select) {
             padding: 5px;
-            width: 100px;
+            width: 130px;
             background-color: #333;
             color: #ffffff;
             border: 1px solid #555;
@@ -149,10 +213,15 @@
             position: relative;
         }
         canvas {
-            border: 1px solid #ffffff;
             background-color: transparent;
             display: block;
+            position: absolute;
+            top: 0;
+            left: 40px;
             transform-origin: top left;
+        }
+        canvas.collapsed {
+            left: 20px;
         }
         #linesList, #groupsList {
             flex: 1;
@@ -236,6 +305,14 @@
             margin-left: 10px;
             line-height: 1.4;
         }
+        .summary {
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            color: #cccccc;
+            margin-top: 10px;
+            margin-left: 10px;
+            line-height: 1.4;
+        }
         .signature {
             font-family: Arial, sans-serif;
             font-size: 12px;
@@ -253,14 +330,14 @@
             gap: 5px;
             width: 130px;
         }
+        #customSizeInputs {
+            display: none;
+        }
         .color-group {
             display: flex;
             align-items: center;
             gap: 10px;
             flex-wrap: wrap;
-        }
-        .color-group label {
-            width: 90px;
         }
         #xmlImport {
             display: none;
@@ -310,7 +387,7 @@
             .default-names-checkbox {
                 margin-left: 0;
             }
-            .note, .signature {
+            .note, .summary, .signature {
                 font-size: 10px;
                 margin-left: 5px;
             }
@@ -318,6 +395,25 @@
                 padding: 8px 16px;
                 font-size: 14px;
                 min-width: 80px;
+            }
+            .collapse-button {
+                width: 24px;
+                height: 24px;
+            }
+            .collapse-button::before {
+                font-size: 14px;
+            }
+            .right-panel {
+                margin-left: 30px;
+            }
+            .right-panel.collapsed {
+                width: calc(100% - 44px);
+            }
+            canvas {
+                left: 30px;
+            }
+            canvas.collapsed {
+                left: 15px;
             }
         }
     </style>
@@ -340,19 +436,82 @@
                     </div>
                 </div>
                 <div class="row">
-                    <label>W x H</label>
+                    <label>module size</label>
+                    <select id="moduleSize" onchange="handleModuleSizeChange()">
+                        <option value="84">84px</option>
+                        <option value="104" selected>104px</option>
+                        <option value="128">128px</option>
+                        <option value="192">192px</option>
+                        <option value="256">256px</option>
+                        <option value="custom">custom</option>
+                    </select>
+                </div>
+                <div class="row" id="customSizeInputs">
+                    <label></label>
                     <div class="input-group">
-                        <input type="number" id="moduleWidth" min="10" value="128">
+                        <input type="number" id="moduleWidth" min="10" value="104">
                         <span>x</span>
-                        <input type="number" id="moduleHeight" min="10" value="128">
+                        <input type="number" id="moduleHeight" min="10" value="104">
                     </div>
                 </div>
                 <div class="row">
                     <div class="color-group">
                         <label for="moduleColor">fill color:</label>
-                        <input type="number" id="moduleColor" min="1" max="25" step="1" value="17" class="color-select">
+                        <select id="moduleColor" class="color-select">
+                            <option value="#0A0A0A" style="background-color: #0A0A0A;">Coal</option>
+                            <option value="#141414" style="background-color: #141414;">Raven</option>
+                            <option value="#1E1E1E" style="background-color: #1E1E1E;">Anthracite</option>
+                            <option value="#282828" style="background-color: #282828;">Graphite</option>
+                            <option value="#323232" style="background-color: #323232;">Lead</option>
+                            <option value="#3C3C3C" style="background-color: #3C3C3C;">Asphalt</option>
+                            <option value="#464646" style="background-color: #464646;">Slate</option>
+                            <option value="#505050" style="background-color: #505050;">Iron</option>
+                            <option value="#5A5A5A" style="background-color: #5A5A5A;">Steel</option>
+                            <option value="#646464" style="background-color: #646464;">Smoke</option>
+                            <option value="#6E6E6E" style="background-color: #6E6E6E;">Mouse</option>
+                            <option value="#787878" style="background-color: #787878;">Stone</option>
+                            <option value="#828282" style="background-color: #828282;">Neutral</option>
+                            <option value="#8C8C8C" style="background-color: #8C8C8C;">Cement</option>
+                            <option value="#969696" style="background-color: #969696;" selected>Ash</option>
+                            <option value="#A0A0A0" style="background-color: #A0A0A0;">Concrete</option>
+                            <option value="#AAAAAA" style="background-color: #AAAAAA;">Silver</option>
+                            <option value="#B4B4B4" style="background-color: #B4B4B4;">Mist</option>
+                            <option value="#BEBEBE" style="background-color: #BEBEBE;">Pale Gray</option>
+                            <option value="#C8C8C8" style="background-color: #C8C8C8;">Fog</option>
+                            <option value="#D2D2D2" style="background-color: #D2D2D2;">Pearl</option>
+                            <option value="#DCDCDC" style="background-color: #DCDCDC;">Gainsboro</option>
+                            <option value="#E6E6E6" style="background-color: #E6E6E6;">Platinum</option>
+                            <option value="#F0F0F0" style="background-color: #F0F0F0;">Moon</option>
+                            <option value="#FAFAFA" style="background-color: #FAFAFA;">Snow</option>
+                        </select>
                         <label for="moduleLabelColor">label color:</label>
-                        <input type="number" id="moduleLabelColor" min="1" max="25" step="1" value="9" class="color-select">
+                        <select id="moduleLabelColor" class="color-select">
+                            <option value="#0A0A0A" style="background-color: #0A0A0A;">Coal</option>
+                            <option value="#141414" style="background-color: #141414;">Raven</option>
+                            <option value="#1E1E1E" style="background-color: #1E1E1E;">Anthracite</option>
+                            <option value="#282828" style="background-color: #282828;">Graphite</option>
+                            <option value="#323232" style="background-color: #323232;" selected>Lead</option>
+                            <option value="#3C3C3C" style="background-color: #3C3C3C;">Asphalt</option>
+                            <option value="#464646" style="background-color: #464646;">Slate</option>
+                            <option value="#505050" style="background-color: #505050;">Iron</option>
+                            <option value="#5A5A5A" style="background-color: #5A5A5A;">Steel</option>
+                            <option value="#646464" style="background-color: #646464;">Smoke</option>
+                            <option value="#6E6E6E" style="background-color: #6E6E6E;">Mouse</option>
+                            <option value="#787878" style="background-color: #787878;">Stone</option>
+                            <option value="#828282" style="background-color: #828282;">Neutral</option>
+                            <option value="#8C8C8C" style="background-color: #8C8C8C;">Cement</option>
+                            <option value="#969696" style="background-color: #969696;">Ash</option>
+                            <option value="#A0A0A0" style="background-color: #A0A0A0;">Concrete</option>
+                            <option value="#AAAAAA" style="background-color: #AAAAAA;">Silver</option>
+                            <option value="#B4B4B4" style="background-color: #B4B4B4;">Mist</option>
+                            <option value="#BEBEBE" style="background-color: #BEBEBE;">Pale Gray</option>
+                            <option value="#C8C8C8" style="background-color: #C8C8C8;">Fog</option>
+                            <option value="#D2D2D2" style="background-color: #D2D2D2;">Pearl</option>
+                            <option value="#DCDCDC" style="background-color: #DCDCDC;">Gainsboro</option>
+                            <option value="#E6E6E6" style="background-color: #E6E6E6;">Platinum</option>
+                            <option value="#F0F0F0" style="background-color: #F0F0F0;">Moon</option>
+                            <option value="#FAFAFA" style="background-color: #FAFAFA;">Snow</option>
+                        </select>
                     </div>
                 </div>
                 <div class="compact-row">
@@ -366,18 +525,32 @@
                     </div>
                 </div>
                 <div class="row">
-                    <button onclick="generateGrid()" title="generate">⚙</button>
-                    <button onclick="exportToPNG()" title="export">↓</button>
+                    <button onclick="generateGrid()" title="generate">вљ™</button>
+                    <button onclick="resetGrid()" title="reset">в†є</button>
                     <button onclick="zoomOut()" title="zoom out">-</button>
                     <button onclick="zoomIn()" title="zoom in">+</button>
-                    <button onclick="exportToXML()" title="export XML">XML ↓</button>
-                    <button onclick="document.getElementById('xmlImport').click()" title="import XML">XML ↑</button>
+                </div>
+                <div class="row">
+                    <button onclick="exportToXML()" title="export XML">XML в†“</button>
+                    <button onclick="document.getElementById('xmlImport').click()" title="import XML">XML в†‘</button>
+                    <button onclick="exportToPNG()" title="export PNG">PNG в†“</button>
+                    <button onclick="exportToSVG()" title="export SVG">SVG в†“</button>
                 </div>
                 <input type="file" id="xmlImport" accept=".xml" onchange="importFromXML(event)">
                 <div class="note">
+<br>
+<br>
+<br>
+<br>
+<br>
                     click to add LED cabinets to Data Line, double-click to complete selection<br>
+<br>
                     ALT + click to add LED cabinets to Power Line, ALT + double-click to complete selection<br>
-                    CTRL + click to toggle cabinet visibility (+ removes LED cabinet from Data/Power Line)
+<br>
+                    CTRL + click to toggle cabinet visibility (+ removes LED cabinet from Data/Power Line)<br>
+<br>
+                    SHIFT + click to start visibility batch selection,<br>
+					second SHIFT + click to complete and hide LED cabinets
                 </div>
             </div>
             <div id="data-tab" class="tab-content">
@@ -388,25 +561,31 @@
                 </div>
                 <div class="default-names-checkbox">
                     <label for="connectionFont">Data Line font:</label>
-                    <select id="connectionFont" style="font-size: 10px; padding: 2px;">
-                        <option value="Arial, sans-serif" style="font-size: 10px;">Arial</option>
-                        <option value="VT323, monospace" style="font-size: 10px;">VT323</option>
-                        <option value="Roboto, sans-serif" style="font-size: 10px;">Roboto</option>
-                        <option value="Open Sans, sans-serif" style="font-size: 10px;">Open Sans</option>
-                        <option value="Lato, sans-serif" style="font-size: 10px;">Lato</option>
-                        <option value="Montserrat, sans-serif" style="font-size: 10px;">Montserrat</option>
-                        <option value="Source Sans Pro, sans-serif" style="font-size: 10px;">Source Sans Pro</option>
-                        <option value="Raleway, sans-serif" style="font-size: 10px;">Raleway</option>
-                        <option value="Merriweather, serif" style="font-size: 10px;" selected>Merriweather</option>
-                        <option value="Ubuntu, sans-serif" style="font-size: 10px;">Ubuntu</option>
+                    <select id="connectionFont" style="font-size: 13px; padding: 2px;" onchange="drawGrid()">
+                        <option value="Homemade Apple, cursive" style="font-size: 13px;">Homemade Apple</option>
+                        <option value="Lato, sans-serif" style="font-size: 13px;">Lato</option>
+                        <option value="Merriweather, serif" style="font-size: 13px;" selected>Merriweather</option>
+                        <option value="Raleway, sans-serif" style="font-size: 13px;">Raleway</option>
+                        <option value="Source Sans Pro, sans-serif" style="font-size: 13px;">Source Sans Pro</option>
+                        <option value="VT323, monospace" style="font-size: 13px;">VT323</option>
                     </select>
+                </div>
+                <div class="default-names-checkbox">
+                    <label for="connectionFontSize">font size:</label>
+                    <input type="range" id="connectionFontSize" min="30" max="100" step="1" value="21" style="width: 100px;" oninput="drawGrid()">
                 </div>
             </div>
             <div id="power-tab" class="tab-content">
                 <div id="groupsList"></div>
             </div>
-            <div class="signature">LedFlow v1.4.4 by Danny A. @ Blackout Minsk</div>
+            <div class="summary" id="summary">
+                total data lines: 0 with avg. 0 (0 to 0) cabinets per line<br>
+                total power lines: 0 with avg. 0 (0 to 0) cabinets per line<br>
+                total not connected cabinets: 0
+            </div>
+            <div class="signature">LedFlow v2.0 by Danny A. @ Blackout Minsk</div>
         </div>
+        <div class="collapse-button" id="collapseButton" onclick="toggleLeftPanel()"></div>
         <div class="right-panel">
             <div id="canvasContainer">
                 <canvas id="gridCanvas"></canvas>
@@ -444,6 +623,26 @@
             }
             return gk_fileData[filename] || "";
         }
+
+        function toggleLeftPanel(collapse = null) {
+            const leftPanel = document.querySelector('.left-panel');
+            const rightPanel = document.querySelector('.right-panel');
+            const collapseButton = document.getElementById('collapseButton');
+            const canvas = document.getElementById('gridCanvas');
+            const isCollapsed = collapse !== null ? collapse : leftPanel.classList.contains('collapsed');
+            if (collapse === true || (collapse === null && !isCollapsed)) {
+                leftPanel.classList.add('collapsed');
+                rightPanel.classList.add('collapsed');
+                collapseButton.classList.add('collapsed');
+                canvas.classList.add('collapsed');
+            } else {
+                leftPanel.classList.remove('collapsed');
+                rightPanel.classList.remove('collapsed');
+                collapseButton.classList.remove('collapsed');
+                canvas.classList.remove('collapsed');
+            }
+            updateScrollbars();
+        }
     </script>
     <script>
         const canvas = document.getElementById('gridCanvas');
@@ -461,18 +660,23 @@
         let groupCounter = 1;
         let removedIndices = [];
         let removedGroupIndices = [];
-        let currentScale = 0.33;
-        const scales = [0.10, 0.15, 0.20, 0.33, 0.50, 0.75, 1.00];
+        let currentScale = 0.60;
+        let visibilityStart = null;
+        let blinkInterval = null;
+        let lastPresetSize = 104;
+        const scales = [0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90, 1.00];
         const mainColors = [
             '#FF0000', '#006400', '#0000FF', '#FFA500', '#FF00FF', '#00FFFF',
             '#FFFF00', '#800080', '#008000', '#000080', '#800000', '#FF4500',
             '#00FF00', '#FFD700', '#4B0082', '#00CED1'
         ];
-        const groupColors = Array.from({ length: 25 }, (_, i) => {
-            const value = (i + 1) * 10;
-            const hex = value.toString(16).padStart(2, '0').toUpperCase();
-            return `#${hex}${hex}${hex}`;
-        });
+        const groupColors = [
+            '#0A0A0A', '#141414', '#1E1E1E', '#282828', '#323232',
+            '#3C3C3C', '#464646', '#505050', '#5A5A5A', '#646464',
+            '#6E6E6E', '#787878', '#828282', '#8C8C8C', '#969696',
+            '#A0A0A0', '#AAAAAA', '#B4B4B4', '#BEBEBE', '#C8C8C8',
+            '#D2D2D2', '#DCDCDC', '#E6E6E6', '#F0F0F0', '#FAFAFA'
+        ];
 
         function initializeGrid(cols, rows) {
             gridState = Array(rows).fill().map(() => Array(cols).fill(true));
@@ -487,16 +691,92 @@
             removedGroupIndices = [];
             updateLinesList();
             updateGroupsList();
+            updateSummary();
             updateFontSizeSliders();
         }
 
+        function resetGrid() {
+            const { cols, rows } = getGridParams();
+            gridState = Array(rows).fill().map(() => Array(cols).fill(true));
+            connections = [];
+            currentConnection = [];
+            currentColor = null;
+            selectedModules = [];
+            selectedGroups = [];
+            lineCounter = 1;
+            groupCounter = 1;
+            removedIndices = [];
+            removedGroupIndices = [];
+            if (blinkInterval) {
+                clearInterval(blinkInterval);
+                blinkInterval = null;
+                visibilityStart = null;
+            }
+            updateLinesList();
+            updateGroupsList();
+            drawGrid();
+            updateSummary();
+        }
+
+        function handleModuleSizeChange() {
+            const moduleSizeSelect = document.getElementById('moduleSize');
+            const customSizeInputs = document.getElementById('customSizeInputs');
+            const moduleWidthInput = document.getElementById('moduleWidth');
+            const moduleHeightInput = document.getElementById('moduleHeight');
+            const size = moduleSizeSelect.value;
+
+            if (size !== 'custom') {
+                lastPresetSize = parseInt(size);
+                customSizeInputs.style.display = 'none';
+            } else {
+                customSizeInputs.style.display = 'flex';
+                moduleWidthInput.value = lastPresetSize;
+                moduleHeightInput.value = lastPresetSize;
+            }
+            generateGrid();
+        }
+
+        function updateSummary() {
+            const summaryDiv = document.getElementById('summary');
+            const A = connections.length;
+            const dataLineCounts = connections.map(conn => conn.points.length).filter(count => count >= 2);
+            const B = A > 0 ? Math.round(dataLineCounts.reduce((sum, count) => sum + count, 0) / A) : 0;
+            const C = A > 0 ? Math.min(...dataLineCounts) : 0;
+            const D = A > 0 ? Math.max(...dataLineCounts) : 0;
+            const E = selectedGroups.length;
+            const powerLineCounts = selectedGroups.map(group => group.modules.length).filter(count => count > 0);
+            const F = E > 0 ? Math.round(powerLineCounts.reduce((sum, count) => sum + count, 0) / E) : 0;
+            const G = E > 0 ? Math.min(...powerLineCounts) : 0;
+            const H = E > 0 ? Math.max(...powerLineCounts) : 0;
+            let K = 0;
+            for (let row = 0; row < gridState.length; row++) {
+                for (let col = 0; col < gridState[0].length; col++) {
+                    if (gridState[row][col]) {
+                        const inDataLine = connections.some(conn => conn.points.some(p => p.row === row && p.col === col));
+                        const inPowerLine = selectedGroups.some(group => group.modules.some(m => m.row === row && m.col === col));
+                        if (!(inDataLine && inPowerLine)) {
+                            K++;
+                        }
+                    }
+                }
+            }
+            summaryDiv.innerHTML = `
+                total data lines: ${A} with avg. ${B} (${C} to ${D}) cabinets per line<br>
+                total power lines: ${E} with avg. ${F} (${G} to ${H}) cabinets per line<br>
+                total not connected cabinets: ${K}
+            `;
+        }
+
         function updateFontSizeSliders() {
-            const moduleHeight = parseInt(document.getElementById('moduleHeight').value);
+            const moduleSize = document.getElementById('moduleSize').value;
+            const moduleHeight = moduleSize === 'custom' ? parseInt(document.getElementById('moduleHeight').value) : parseInt(moduleSize);
             document.getElementById('moduleLabelFontSize').value = Math.round(0.2 * moduleHeight);
-            document.getElementById('moduleColor').value = 17;
-            document.getElementById('moduleLabelColor').value = 9;
+            document.getElementById('moduleColor').value = '#969696';
+            document.getElementById('moduleLabelColor').value = '#323232';
             document.getElementById('hatchDensity').value = 10;
         }
+
+        let activeTab = 'settings';
 
         function switchTab(tab) {
             activeTab = tab;
@@ -512,15 +792,20 @@
                     content.classList.add('active');
                 }
             });
+            drawGrid();
         }
 
         function getGridParams() {
+            const moduleSize = document.getElementById('moduleSize').value;
+            const moduleWidth = moduleSize === 'custom' ? parseInt(document.getElementById('moduleWidth').value) : parseInt(moduleSize);
+            const moduleHeight = moduleSize === 'custom' ? parseInt(document.getElementById('moduleHeight').value) : parseInt(moduleSize);
             return {
                 cols: parseInt(document.getElementById('cols').value),
                 rows: parseInt(document.getElementById('rows').value),
-                moduleWidth: parseInt(document.getElementById('moduleWidth').value),
-                moduleHeight: parseInt(document.getElementById('moduleHeight').value),
-                moduleColor: groupColors[parseInt(document.getElementById('moduleColor').value) - 1]
+                moduleWidth: moduleWidth,
+                moduleHeight: moduleHeight,
+                moduleColor: document.getElementById('moduleColor').value,
+                moduleLabelColor: document.getElementById('moduleLabelColor').value
             };
         }
 
@@ -528,27 +813,52 @@
             const containerRect = canvasContainer.getBoundingClientRect();
             const scaledWidth = canvas.width * currentScale;
             const scaledHeight = canvas.height * currentScale;
+            const canvasOffsetLeft = document.querySelector('.left-panel').classList.contains('collapsed') ? 20 : 40;
 
-            if (scaledWidth <= containerRect.width && scaledHeight <= containerRect.height) {
-                canvasContainer.style.overflow = 'hidden';
-                canvas.style.position = 'absolute';
-                canvas.style.left = `${(containerRect.width - scaledWidth) / 2}px`;
-                canvas.style.top = `${(containerRect.height - scaledHeight) / 2}px`;
-            } else {
+            canvasContainer.scrollLeft = 0;
+            canvasContainer.scrollTop = 0;
+
+            if (scaledWidth + canvasOffsetLeft > containerRect.width || scaledHeight > containerRect.height) {
                 canvasContainer.style.overflow = 'auto';
-                canvas.style.position = 'static';
-                canvasContainer.scrollLeft = (scaledWidth - containerRect.width) / 2;
-                canvasContainer.scrollTop = (scaledHeight - containerRect.height) / 2;
+            } else {
+                canvasContainer.style.overflow = 'hidden';
             }
         }
 
         function generateGrid() {
-            const { cols, rows, moduleWidth, moduleHeight } = getGridParams();
-            initializeGrid(cols, rows);
-            canvas.width = cols * moduleWidth;
-            canvas.height = rows * moduleHeight;
+            const { cols: newCols, rows: newRows, moduleWidth, moduleHeight } = getGridParams();
+            const oldGridState = gridState;
+            const oldRows = oldGridState.length;
+            const oldCols = oldRows > 0 ? oldGridState[0].length : 0;
+            const newGridState = Array(newRows).fill().map(() => Array(newCols).fill(true));
+
+            for (let r = 0; r < Math.min(oldRows, newRows); r++) {
+                for (let c = 0; c < Math.min(oldCols, newCols); c++) {
+                    newGridState[r][c] = oldGridState[r][c];
+                }
+            }
+
+            gridState = newGridState;
+            connections = connections.map(conn => ({
+                ...conn,
+                points: conn.points.filter(p => p.row < newRows && p.col < newCols && p.row >= 0 && p.col >= 0)
+            })).filter(conn => conn.points.length >= 2);
+            selectedGroups = selectedGroups.map(group => ({
+                ...group,
+                modules: group.modules.filter(m => m.row < newRows && m.col < newCols && m.row >= 0 && m.col >= 0)
+            })).filter(group => group.modules.length > 0);
+
+            lineCounter = connections.length + 1;
+            groupCounter = selectedGroups.length + 1;
+
+            canvas.width = newCols * moduleWidth;
+            canvas.height = newRows * moduleHeight;
             canvas.style.transform = `scale(${currentScale})`;
+
             drawGrid();
+            updateLinesList();
+            updateGroupsList();
+            updateSummary();
             updateScrollbars();
         }
 
@@ -572,13 +882,31 @@
             updateScrollbars();
         }
 
+        window.addEventListener('keydown', (event) => {
+            if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                zoomOut();
+            } else if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                zoomIn();
+            } else if (event.key === 'ArrowLeft') {
+                event.preventDefault();
+                toggleLeftPanel(true);
+            } else if (event.key === 'ArrowRight') {
+                event.preventDefault();
+                toggleLeftPanel(false);
+            }
+        });
+
         async function drawGrid() {
             await document.fonts.ready;
-            const { cols, rows, moduleWidth, moduleHeight, moduleColor } = getGridParams();
+            const { cols, rows, moduleWidth, moduleHeight, moduleColor, moduleLabelColor } = getGridParams();
             const labelFontSize = parseInt(document.getElementById('moduleLabelFontSize').value);
-            const labelColorIndex = parseInt(document.getElementById('moduleLabelColor').value);
-            const connectionFontSize = Math.round(0.4 * moduleHeight);
+            const connectionFontSize = parseInt(document.getElementById('connectionFontSize').value);
             const connectionFont = document.getElementById('connectionFont').value;
+
+            await document.fonts.load(`bold ${connectionFontSize}px ${connectionFont}`);
+            await document.fonts.load(`${labelFontSize}px Arial, sans-serif`);
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.lineWidth = 1;
@@ -590,18 +918,16 @@
                         const y = row * moduleHeight;
                         ctx.fillStyle = moduleColor;
                         ctx.fillRect(x, y, moduleWidth, moduleHeight);
-                        ctx.strokeStyle = labelColorIndex > 0 ? groupColors[labelColorIndex - 1] : '#000000';
+                        ctx.strokeStyle = moduleLabelColor;
                         ctx.strokeRect(x, y, moduleWidth, moduleHeight);
 
-                        if (labelColorIndex > 0) {
-                            ctx.save();
-                            ctx.font = `${labelFontSize}px Arial, sans-serif`;
-                            ctx.fillStyle = groupColors[labelColorIndex - 1];
-                            ctx.textAlign = 'left';
-                            ctx.textBaseline = 'top';
-                            ctx.fillText(`${row + 1}.${col + 1}`, x + 10, y + 10);
-                            ctx.restore();
-                        }
+                        ctx.save();
+                        ctx.font = `${labelFontSize}px Arial, sans-serif`;
+                        ctx.fillStyle = moduleLabelColor;
+                        ctx.textAlign = 'left';
+                        ctx.textBaseline = 'top';
+                        ctx.fillText(`${row + 1}.${col + 1}`, x + 10, y + 10);
+                        ctx.restore();
                     }
                 }
             }
@@ -664,94 +990,125 @@
 
             ctx.save();
             ctx.globalAlpha = 1;
-            for (let row = 0; row < rows; row++) {
-                for (let col = 0; col < cols; col++) {
-                    if (!gridState[row][col]) continue;
-                    const x = col * moduleWidth;
-                    const y = row * moduleHeight;
-
-                    const connStart = connections.find(c => c.points[0].row === row && c.points[0].col === col);
-                    if (connStart && connStart.name) {
-                        ctx.font = `bold ${connectionFontSize}px ${connectionFont}`;
-                        ctx.fillStyle = '#000000';
-                        ctx.textAlign = 'center';
-                        ctx.textBaseline = 'middle';
-                        let labelX = x + moduleWidth / 2;
-                        let labelY = y + moduleHeight / 2;
-                        if (connStart.points.length > 1) {
-                            const first = connStart.points[0];
-                            const second = connStart.points[1];
-                            if (second.col > first.col) {
-                                labelX = x + moduleWidth / 4;
-                                labelY = y + 3 * moduleHeight / 4;
-                            } else if (second.col < first.col) {
-                                labelX = x + 3 * moduleWidth / 4;
-                                labelY = y + moduleHeight / 4;
-                            } else if (second.row > first.row) {
-                                labelX = x + 3 * moduleWidth / 4;
-                                labelY = y + moduleHeight / 4;
-                            } else if (second.row < first.row) {
-                                labelX = x + moduleWidth / 4;
-                                labelY = y + 3 * moduleHeight / 4;
-                            }
+            connections.forEach(conn => {
+                if (conn.name && conn.points.length > 0) {
+                    const first = conn.points[0];
+                    let labelX = first.col * moduleWidth + moduleWidth / 2;
+                    let labelY = first.row * moduleHeight + moduleHeight / 2;
+                    if (conn.points.length > 1) {
+                        const second = conn.points[1];
+                        if (second.col > first.col) {
+                            labelX = first.col * moduleWidth + moduleWidth / 4;
+                            labelY = first.row * moduleHeight + 3 * moduleHeight / 4;
+                        } else if (second.col < first.col) {
+                            labelX = first.col * moduleWidth + 3 * moduleWidth / 4;
+                            labelY = first.row * moduleHeight + moduleHeight / 4;
+                        } else if (second.row > first.row) {
+                            labelX = first.col * moduleWidth + 3 * moduleWidth / 4;
+                            labelY = first.row * moduleHeight + moduleHeight / 4;
+                        } else if (second.row < first.row) {
+                            labelX = first.col * moduleWidth + moduleWidth / 4;
+                            labelY = first.row * moduleHeight + 3 * moduleHeight / 4;
                         }
-                        ctx.fillText(connStart.name, labelX, labelY);
                     }
-
-                    const connEnd = connections.find(c => c.points[c.points.length - 1].row === row && c.points[c.points.length - 1].col === col);
-                    if (connEnd && connEnd.endName) {
-                        ctx.font = `bold ${connectionFontSize}px ${connectionFont}`;
-                        ctx.fillStyle = '#000000';
-                        ctx.textAlign = 'center';
-                        ctx.textBaseline = 'middle';
-                        let labelX = x + moduleWidth / 2;
-                        let labelY = y + moduleHeight / 2;
-                        if (connEnd.points.length > 1) {
-                            const last = connEnd.points[connEnd.points.length - 1];
-                            const secondLast = connEnd.points[connEnd.points.length - 2];
-                            if (secondLast.col > last.col || secondLast.row < last.row) {
-                                labelX = x + moduleWidth / 4;
-                                labelY = y + 3 * moduleHeight / 4;
-                            } else if (secondLast.col < last.col || secondLast.row > last.row) {
-                                labelX = x + 3 * moduleWidth / 4;
-                                labelY = y + moduleHeight / 4;
-                            }
+                    ctx.font = `bold ${connectionFontSize}px ${connectionFont}`;
+                    ctx.fillStyle = '#000000';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(conn.name, labelX, labelY);
+                }
+                if (conn.endName && conn.points.length > 0) {
+                    const last = conn.points[conn.points.length - 1];
+                    let labelX = last.col * moduleWidth + moduleWidth / 2;
+                    let labelY = last.row * moduleHeight + moduleHeight / 2;
+                    if (conn.points.length > 1) {
+                        const secondLast = conn.points[conn.points.length - 2];
+                        if (secondLast.col > last.col || secondLast.row < last.row) {
+                            labelX = last.col * moduleWidth + moduleWidth / 4;
+                            labelY = last.row * moduleHeight + 3 * moduleHeight / 4;
+                        } else if (secondLast.col < last.col || secondLast.row > last.row) {
+                            labelX = last.col * moduleWidth + 3 * moduleWidth / 4;
+                            labelY = last.row * moduleHeight + moduleHeight / 4;
                         }
-                        ctx.fillText(connEnd.endName, labelX, labelY);
                     }
+                    ctx.font = `bold ${connectionFontSize}px ${connectionFont}`;
+                    ctx.fillStyle = '#000000';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(conn.endName, labelX, labelY);
+                }
+            });
 
-                    if (currentConnection.length > 0 && currentConnection[0].row === row && currentConnection[0].col === col) {
-                        ctx.font = `bold ${connectionFontSize}px ${connectionFont}`;
-                        ctx.fillStyle = '#000000';
-                        ctx.textAlign = 'center';
-                        ctx.textBaseline = 'middle';
-                        let labelX = x + moduleWidth / 2;
-                        let labelY = y + moduleHeight / 2;
-                        if (currentConnection.length > 1) {
-                            const first = currentConnection[0];
-                            const second = currentConnection[1];
-                            if (second.col > first.col) {
-                                labelX = x + moduleWidth / 4;
-                                labelY = y + 3 * moduleHeight / 4;
-                            } else if (second.col < first.col) {
-                                labelX = x + 3 * moduleWidth / 4;
-                                labelY = y + moduleHeight / 4;
-                            } else if (second.row > first.row) {
-                                labelX = x + 3 * moduleWidth / 4;
-                                labelY = y + moduleHeight / 4;
-                            } else if (second.row < first.row) {
-                                labelX = x + moduleWidth / 4;
-                                labelY = y + 3 * moduleHeight / 4;
-                            }
-                        }
-                        const nextIndex = removedIndices[0] || connections.length;
-                        ctx.fillText(`${nextIndex + 1}A`, labelX, labelY);
+            if (currentConnection.length > 0) {
+                const first = currentConnection[0];
+                let labelX = first.col * moduleWidth + moduleWidth / 2;
+                let labelY = first.row * moduleHeight + moduleHeight / 2;
+                if (currentConnection.length > 1) {
+                    const second = currentConnection[1];
+                    if (second.col > first.col) {
+                        labelX = first.col * moduleWidth + moduleWidth / 4;
+                        labelY = first.row * moduleHeight + 3 * moduleHeight / 4;
+                    } else if (second.col < first.col) {
+                        labelX = first.col * moduleWidth + 3 * moduleWidth / 4;
+                        labelY = first.row * moduleHeight + moduleHeight / 4;
+                    } else if (second.row > first.row) {
+                        labelX = first.col * moduleWidth + 3 * moduleWidth / 4;
+                        labelY = first.row * moduleHeight + moduleHeight / 4;
+                    } else if (second.row < first.row) {
+                        labelX = first.col * moduleWidth + moduleWidth / 4;
+                        labelY = first.row * moduleHeight + 3 * moduleHeight / 4;
                     }
                 }
+                const nextIndex = removedIndices[0] || connections.length;
+                ctx.font = `bold ${connectionFontSize}px ${connectionFont}`;
+                ctx.fillStyle = '#000000';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(`${nextIndex + 1}A`, labelX, labelY);
             }
             ctx.restore();
         }
+    </script>
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
 
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><script>
         function drawMainSelection(points, color, moduleWidth, moduleHeight, isForwardSlash) {
             if (points.length < 1 || !color) return;
             const step = 20 - parseInt(document.getElementById('hatchDensity').value);
@@ -810,10 +1167,9 @@
             const dx = x2 - x1;
             const dy = y2 - y1;
             const angle = Math.atan2(dy, dx);
-            const headHeight = headLength; // Equilateral triangle height
-            const headBase = headHeight * Math.sqrt(3) / 2; // Base of equilateral triangle
+            const headHeight = headLength;
+            const headBase = headHeight * Math.sqrt(3) / 2;
 
-            // Draw filled equilateral triangle arrow
             ctx.save();
             ctx.fillStyle = '#000000';
             ctx.beginPath();
@@ -848,6 +1204,7 @@
                         conn.name = mainInput.value;
                         drawGrid();
                         updateLinesList();
+                        updateSummary();
                     };
                 }
                 div.appendChild(mainInput);
@@ -862,12 +1219,13 @@
                         conn.endName = endInput.value;
                         drawGrid();
                         updateLinesList();
+                        updateSummary();
                     };
                 }
                 div.appendChild(endInput);
 
                 const removeBtn = document.createElement('button');
-                removeBtn.textContent = '✕';
+                removeBtn.textContent = 'вњ•';
                 removeBtn.disabled = !isFilled;
                 if (isFilled) {
                     removeBtn.onclick = () => removeConnection(i);
@@ -875,6 +1233,7 @@
                 div.appendChild(removeBtn);
                 linesList.appendChild(div);
             }
+            updateSummary();
         }
 
         function handleDefaultNamesChange() {
@@ -886,6 +1245,7 @@
                 });
                 updateLinesList();
                 drawGrid();
+                updateSummary();
             } else {
                 if (confirm("This will overwrite your Data Lines names with default ones.")) {
                     connections.forEach((conn, index) => {
@@ -895,6 +1255,7 @@
                     });
                     updateLinesList();
                     drawGrid();
+                    updateSummary();
                 } else {
                     checkbox.checked = false;
                 }
@@ -950,11 +1311,12 @@
                         group.colorIndex = value;
                         colorInput.value = value;
                         drawGrid();
+                        updateSummary();
                     };
                 }
                 div.appendChild(colorInput);
                 const removeBtn = document.createElement('button');
-                removeBtn.textContent = '✕';
+                removeBtn.textContent = 'вњ•';
                 removeBtn.disabled = !isFilled;
                 if (isFilled) {
                     removeBtn.onclick = () => removeGroup(i);
@@ -962,6 +1324,7 @@
                 div.appendChild(removeBtn);
                 groupsList.appendChild(div);
             }
+            updateSummary();
         }
 
         function removeGroup(index) {
@@ -972,6 +1335,7 @@
             selectedGroups.splice(index, 1);
             updateGroupsList();
             drawGrid();
+            updateSummary();
         }
 
         function removeConnection(index) {
@@ -983,6 +1347,7 @@
             renumberConnections();
             updateLinesList();
             drawGrid();
+            updateSummary();
         }
 
         function renumberConnections() {
@@ -1022,6 +1387,7 @@
             }
             renumberConnections();
             updateLinesList();
+            updateSummary();
         }
 
         function interpolatePoints(start, end) {
@@ -1176,7 +1542,42 @@
 
             if (row < 0 || row >= rows || col < 0 || col >= cols) return;
 
-            if (event.altKey) {
+            if (event.shiftKey) {
+                if (gridState[row][col]) {
+                    if (visibilityStart === null) {
+                        visibilityStart = { row, col };
+                        if (!isInLine(row, col)) {
+                            gridState[row][col] = false;
+                            drawGrid();
+                            blinkInterval = setInterval(() => {
+                                gridState[row][col] = !gridState[row][col];
+                                drawGrid();
+                            }, 350);
+                        }
+                    } else {
+                        if (blinkInterval) {
+                            clearInterval(blinkInterval);
+                            blinkInterval = null;
+                        }
+                        gridState[visibilityStart.row][visibilityStart.col] = true;
+                        const minRow = Math.min(visibilityStart.row, row);
+                        const maxRow = Math.max(visibilityStart.row, row);
+                        const minCol = Math.min(visibilityStart.col, col);
+                        const maxCol = Math.max(visibilityStart.col, col);
+                        for (let r = minRow; r <= maxRow; r++) {
+                            for (let c = minCol; c <= maxCol; c++) {
+                                if (!isInLine(r, c)) {
+                                    gridState[r][c] = false;
+                                }
+                            }
+                        }
+                        visibilityStart = null;
+                        drawGrid();
+                        updateSummary();
+                        updateScrollbars();
+                    }
+                }
+            } else if (event.altKey) {
                 if (gridState[row][col]) {
                     const module = { row, col };
                     const inModules = selectedModules.some(p => p.row === row && p.col === col);
@@ -1184,6 +1585,8 @@
                     if (!inModules && !inGroup) {
                         selectedModules.push(module);
                         drawGrid();
+                        updateSummary();
+                        updateScrollbars();
                     }
                 }
             } else if (event.ctrlKey) {
@@ -1220,6 +1623,8 @@
 
                 if (changesMade) {
                     drawGrid();
+                    updateSummary();
+                    updateScrollbars();
                 }
             } else {
                 const point = { row, col, color: currentColor };
@@ -1229,6 +1634,8 @@
                         currentConnection = [point];
                         currentColor = mainColors[colorIndex % mainColors.length];
                         drawGrid();
+                        updateSummary();
+                        updateScrollbars();
                     } else {
                         const lastPoint = currentConnection[currentConnection.length - 1];
                         const newPoints = interpolatePoints(lastPoint, point);
@@ -1243,6 +1650,8 @@
                                 removedIndices.sort((a, b) => a - b);
                                 renumberConnections();
                                 updateLinesList();
+                                updateSummary();
+                                updateScrollbars();
                             }
                             newPoints.forEach(p => {
                                 if (!currentConnection.some(cp => cp.row === p.row && cp.col === p.col)) {
@@ -1250,6 +1659,8 @@
                                 }
                             });
                             drawGrid();
+                            updateSummary();
+                            updateScrollbars();
                         }
                     }
                 }
@@ -1286,10 +1697,14 @@
                 selectedModules = [];
                 updateGroupsList();
                 drawGrid();
+                updateSummary();
+                updateScrollbars();
             } else if (currentConnection.length >= 1) {
                 if (currentConnection.some(p => p.row === row && p.col === col)) {
                     completeCurrentConnection();
                     drawGrid();
+                    updateSummary();
+                    updateScrollbars();
                 }
             }
         }
@@ -1310,6 +1725,8 @@
                 removedIndices.sort((a, b) => a - b);
                 renumberConnections();
                 updateLinesList();
+                updateSummary();
+                updateScrollbars();
             }
             const connectionIndex = getUniqueColorIndex();
             const useDefaultNames = document.getElementById('useDefaultNames').checked;
@@ -1325,6 +1742,8 @@
             renumberConnections();
             updateLinesList();
             drawGrid();
+            updateSummary();
+            updateScrollbars();
         }
 
         function exportToPNG() {
@@ -1336,7 +1755,8 @@
         }
 
         function exportToXML() {
-            const { cols, rows } = getGridParams();
+            const { cols, rows, moduleWidth, moduleHeight } = getGridParams();
+            const moduleSize = document.getElementById('moduleSize').value;
             const xml = new XMLSerializer().serializeToString(createXML());
             const blob = new Blob([xml], { type: 'application/xml' });
             const link = document.createElement('a');
@@ -1351,8 +1771,15 @@
             const params = xml.createElement('params');
             params.setAttribute('cols', document.getElementById('cols').value);
             params.setAttribute('rows', document.getElementById('rows').value);
-            params.setAttribute('moduleWidth', document.getElementById('moduleWidth').value);
-            params.setAttribute('moduleHeight', document.getElementById('moduleHeight').value);
+            params.setAttribute('moduleSize', document.getElementById('moduleSize').value);
+            if (document.getElementById('moduleSize').value === 'custom') {
+                params.setAttribute('moduleWidth', document.getElementById('moduleWidth').value);
+                params.setAttribute('moduleHeight', document.getElementById('moduleHeight').value);
+            } else {
+                params.setAttribute('lastPresetSize', lastPresetSize);
+            }
+            params.setAttribute('connectionFont', document.getElementById('connectionFont').value);
+            params.setAttribute('connectionFontSize', document.getElementById('connectionFontSize').value);
             root.appendChild(params);
 
             const gridStateElem = xml.createElement('gridState');
@@ -1416,95 +1843,343 @@
                 const xml = new DOMParser().parseFromString(e.target.result, 'application/xml');
                 const parseError = xml.getElementsByTagName('parsererror')[0];
                 if (parseError) {
-                    console.error('Invalid XML file');
+                    alert('Invalid XML file');
+                    console.error('Invalid XML file', parseError);
                     return;
                 }
+
                 const params = xml.getElementsByTagName('params')[0];
-                document.getElementById('cols').value = params.getAttribute('cols');
-                document.getElementById('rows').value = params.getAttribute('rows');
-                document.getElementById('moduleWidth').value = params.getAttribute('moduleWidth');
-                document.getElementById('moduleHeight').value = params.getAttribute('moduleHeight');
-                generateGrid();
+                if (!params) {
+                    alert('Missing params in XML');
+                    return;
+                }
+
+                const newCols = parseInt(params.getAttribute('cols'));
+                const newRows = parseInt(params.getAttribute('rows'));
+                const moduleSize = params.getAttribute('moduleSize') || '104';
+                const connectionFont = params.getAttribute('connectionFont') || 'Merriweather, serif';
+                const connectionFontSize = parseInt(params.getAttribute('connectionFontSize')) || 21;
+                let newModuleWidth, newModuleHeight;
+
+                if (moduleSize === 'custom') {
+                    newModuleWidth = parseInt(params.getAttribute('moduleWidth')) || 104;
+                    newModuleHeight = parseInt(params.getAttribute('moduleHeight')) || 104;
+                } else {
+                    newModuleWidth = newModuleHeight = parseInt(moduleSize) || 104;
+                    lastPresetSize = parseInt(params.getAttribute('lastPresetSize')) || parseInt(moduleSize) || 104;
+                }
+
+                document.getElementById('cols').value = newCols;
+                document.getElementById('rows').value = newRows;
+                document.getElementById('moduleSize').value = moduleSize;
+                document.getElementById('connectionFont').value = connectionFont;
+                document.getElementById('connectionFontSize').value = connectionFontSize;
+                const customSizeInputs = document.getElementById('customSizeInputs');
+                const moduleWidthInput = document.getElementById('moduleWidth');
+                const moduleHeightInput = document.getElementById('moduleHeight');
+                if (moduleSize === 'custom') {
+                    customSizeInputs.style.display = 'flex';
+                    moduleWidthInput.value = newModuleWidth;
+                    moduleHeightInput.value = newModuleHeight;
+                } else {
+                    customSizeInputs.style.display = 'none';
+                    moduleWidthInput.value = lastPresetSize;
+                    moduleHeightInput.value = lastPresetSize;
+                }
+
+                gridState = Array(newRows).fill().map(() => Array(newCols).fill(true));
+                connections = [];
+                currentConnection = [];
+                currentColor = null;
+                selectedModules = [];
+                selectedGroups = [];
+                lineCounter = 1;
+                groupCounter = 1;
+                removedIndices = [];
+                removedGroupIndices = [];
+
+                canvas.width = newCols * newModuleWidth;
+                canvas.height = newRows * newModuleHeight;
 
                 const gridStateElem = xml.getElementsByTagName('gridState')[0];
-                const modules = gridStateElem.getElementsByTagName('module');
-                for (let m of modules) {
-                    const r = parseInt(m.getAttribute('row'));
-                    const c = parseInt(m.getAttribute('col'));
-                    gridState[r][c] = m.getAttribute('visible') === 'true';
+                if (gridStateElem) {
+                    const modules = gridStateElem.getElementsByTagName('module');
+                    for (let m of modules) {
+                        const r = parseInt(m.getAttribute('row'));
+                        const c = parseInt(m.getAttribute('col'));
+                        const visible = m.getAttribute('visible') === 'true';
+                        if (r >= 0 && r < newRows && c >= 0 && c < newCols) {
+                            gridState[r][c] = visible;
+                        }
+                    }
                 }
 
-                connections = [];
                 const mainSelections = xml.getElementsByTagName('mainSelections')[0];
-                const selections = mainSelections.getElementsByTagName('selection');
-                for (let s of selections) {
-                    const points = [];
-                    const ps = s.getElementsByTagName('point');
-                    for (let p of ps) {
-                        points.push({ row: parseInt(p.getAttribute('row')), col: parseInt(p.getAttribute('col')) });
+                if (mainSelections) {
+                    const selections = mainSelections.getElementsByTagName('selection');
+                    for (let s of selections) {
+                        const points = [];
+                        const ps = s.getElementsByTagName('point');
+                        for (let p of ps) {
+                            points.push({
+                                row: parseInt(p.getAttribute('row')),
+                                col: parseInt(p.getAttribute('col'))
+                            });
+                        }
+                        if (points.length > 0) {
+                            connections.push({
+                                points,
+                                color: s.getAttribute('color') || mainColors[connections.length % mainColors.length],
+                                name: s.getAttribute('name') || '',
+                                endName: s.getAttribute('endName') || ''
+                            });
+                        }
                     }
-                    connections.push({
-                        points,
-                        color: s.getAttribute('color'),
-                        name: s.getAttribute('name'),
-                        endName: s.getAttribute('endName')
-                    });
+                    lineCounter = connections.length + 1;
                 }
-                renumberConnections();
-                updateLinesList();
 
-                selectedGroups = [];
                 const altGroups = xml.getElementsByTagName('altGroups')[0];
-                const groups = altGroups.getElementsByTagName('group');
-                Array.from(groups).sort((a, b) => {
-                    const aModules = Array.from(a.getElementsByTagName('module')).map(m => ({
-                        row: parseInt(m.getAttribute('row')),
-                        col: parseInt(m.getAttribute('col'))
-                    }));
-                    const bModules = Array.from(b.getElementsByTagName('module')).map(m => ({
-                        row: parseInt(m.getAttribute('row')),
-                        col: parseInt(m.getAttribute('col'))
-                    }));
-                    const aMinRow = Math.min(...aModules.map(m => m.row));
-                    const aMinCol = Math.min(...aModules.filter(m => m.row === aMinRow).map(m => m.col));
-                    const bMinRow = Math.min(...bModules.map(m => m.row));
-                    const bMinCol = Math.min(...bModules.filter(m => m.row === bMinRow).map(m => m.col));
-                    return aMinRow !== bMinRow ? aMinRow - bMinRow : aMinCol - bMinCol;
-                }).forEach((g, index) => {
-                    const modules = [];
-                    const ms = g.getElementsByTagName('module');
-                    for (let m of ms) {
-                        modules.push({ row: parseInt(m.getAttribute('row')), col: parseInt(m.getAttribute('col')) });
-                    }
-                    selectedGroups.push({
-                        index: index + 1,
-                        modules,
-                        colorIndex: parseInt(g.getAttribute('colorIndex'))
+                if (altGroups) {
+                    const groups = Array.from(altGroups.getElementsByTagName('group'));
+                    const sortedGroups = groups.map(g => {
+                        const modules = Array.from(g.getElementsByTagName('module')).map(m => ({
+                            row: parseInt(m.getAttribute('row')),
+                            col: parseInt(m.getAttribute('col'))
+                        }));
+                        return {
+                            index: parseInt(g.getAttribute('index')) || 1,
+                            colorIndex: parseInt(g.getAttribute('colorIndex')) || 1,
+                            modules
+                        };
+                    }).sort((a, b) => {
+                        const aMinRow = Math.min(...a.modules.map(m => m.row));
+                        const aMinCol = Math.min(...a.modules.filter(m => m.row === aMinRow).map(m => m.col));
+                        const bMinRow = Math.min(...b.modules.map(m => m.row));
+                        const bMinCol = Math.min(...b.modules.filter(m => m.row === bMinRow).map(m => m.col));
+                        return aMinRow !== bMinRow ? aMinRow - bMinRow : aMinCol - bMinCol;
                     });
-                });
+
+                    selectedGroups = sortedGroups.map((g, idx) => ({
+                        index: idx + 1,
+                        colorIndex: g.colorIndex,
+                        modules: g.modules
+                    }));
+                    groupCounter = selectedGroups.length + 1;
+                }
+
+                updateLinesList();
                 updateGroupsList();
                 drawGrid();
+                updateSummary();
+                updateScrollbars();
             };
             reader.readAsText(file);
+            event.target.value = '';
         }
 
-        document.getElementById('moduleColor').addEventListener('input', () => {
-            const input = document.getElementById('moduleColor');
-            input.value = Math.max(1, Math.min(25, parseInt(input.value)));
-            drawGrid();
-        });
-        document.getElementById('moduleLabelFontSize').addEventListener('input', drawGrid);
-        document.getElementById('moduleLabelColor').addEventListener('input', () => {
-            const input = document.getElementById('moduleLabelColor');
-            input.value = Math.max(1, Math.min(25, parseInt(input.value)));
-            drawGrid();
-        });
-        document.getElementById('hatchDensity').addEventListener('input', drawGrid);
-        document.getElementById('connectionFont').addEventListener('change', drawGrid);
+        document.getElementById('moduleColor').addEventListener('change', () => { drawGrid(); updateSummary(); });
+        document.getElementById('moduleLabelFontSize').addEventListener('input', () => { drawGrid(); updateSummary(); });
+        document.getElementById('moduleLabelColor').addEventListener('change', () => { drawGrid(); updateSummary(); });
+        document.getElementById('hatchDensity').addEventListener('input', () => { drawGrid(); updateSummary(); });
+        document.getElementById('moduleWidth').addEventListener('input', generateGrid);
+        document.getElementById('moduleHeight').addEventListener('input', generateGrid);
         canvas.addEventListener('click', toggleModule);
         canvas.addEventListener('dblclick', handleDoubleClick);
         window.addEventListener('resize', updateScrollbars);
         generateGrid();
+
+        function isInLine(row, col) {
+            return isModuleInConnection(row, col) || selectedGroups.some(g => g.modules.some(m => m.row === row && m.col === col));
+        }
+
+        function exportToSVG() {
+            const { cols, rows, moduleWidth, moduleHeight, moduleColor, moduleLabelColor } = getGridParams();
+            const labelFontSize = parseInt(document.getElementById('moduleLabelFontSize').value);
+            const connectionFontSize = parseInt(document.getElementById('connectionFontSize').value);
+            const hatchDensity = parseInt(document.getElementById('hatchDensity').value);
+            const step = 20 - hatchDensity;
+
+            let svgContent = `<svg width="${cols * moduleWidth}" height="${rows * moduleHeight}" xmlns="http://www.w3.org/2000/svg">`;
+
+            let defs = '<defs>';
+            connections.forEach((conn, index) => {
+                const color80 = conn.color + '80';
+                const isForwardSlash = index % 2 === 0;
+                defs += `
+                    <pattern id="pattern${index}" width="${step}" height="${step}" patternUnits="userSpaceOnUse" patternTransform="rotate(${isForwardSlash ? '45' : '-45'})">
+                        <line x1="0" y1="0" x2="0" y2="${step}" stroke="${color80}" stroke-width="2"/>
+                    </pattern>
+                `;
+            });
+            defs += '</defs>';
+            svgContent += defs;
+
+            for (let row = 0; row < rows; row++) {
+                for (let col = 0; col < cols; col++) {
+                    if (gridState[row][col]) {
+                        const x = col * moduleWidth;
+                        const y = row * moduleHeight;
+                        svgContent += `<rect x="${x}" y="${y}" width="${moduleWidth}" height="${moduleHeight}" fill="${moduleColor}" stroke="${moduleLabelColor}" stroke-width="1"/>`;
+                        svgContent += `<text x="${x + 10}" y="${y + labelFontSize + 10}" font-family="Arial, sans-serif" font-size="${labelFontSize}px" fill="${moduleLabelColor}">${row + 1}.${col + 1}</text>`;
+                    }
+                }
+            }
+
+            connections.forEach((conn, index) => {
+                conn.points.forEach(point => {
+                    const x = point.col * moduleWidth;
+                    const y = point.row * moduleHeight;
+                    svgContent += `<rect x="${x}" y="${y}" width="${moduleWidth}" height="${moduleHeight}" fill="url(#pattern${index})"/>`;
+                });
+                if (conn.points.length >= 2) {
+                    let path = '';
+                    conn.points.forEach(point => {
+                        const px = point.col * moduleWidth + moduleWidth / 2;
+                        const py = point.row * moduleHeight + moduleHeight / 2;
+                        path += (path ? ' L' : 'M') + `${px} ${py}`;
+                    });
+                    svgContent += `<path d="${path}" fill="none" stroke="#000000" stroke-width="${Math.max(3, moduleWidth / 30)}"/>`;
+
+                    const last = conn.points[conn.points.length - 1];
+                    const secondLast = conn.points[conn.points.length - 2];
+                    const x1 = secondLast.col * moduleWidth + moduleWidth / 2;
+                    const y1 = secondLast.row * moduleHeight + moduleHeight / 2;
+                    const x2 = last.col * moduleWidth + moduleWidth / 2;
+                    const y2 = last.row * moduleHeight + moduleHeight / 2;
+                    const angle = Math.atan2(y2 - y1, x2 - x1);
+                    const headLength = 40;
+                    const headHeight = headLength;
+                    const headBase = headHeight * Math.sqrt(3) / 2;
+                    svgContent += `<polygon points="${x2},${y2} ${x2 - headHeight * Math.cos(angle)},${y2 - headHeight * Math.sin(angle)} ${x2 - headHeight * Math.cos(angle) + headBase * Math.sin(angle) / 2},${y2 - headHeight * Math.sin(angle) - headBase * Math.cos(angle) / 2}" fill="#000000"/>`;
+                }
+
+                if (conn.name) {
+                    const first = conn.points[0];
+                    let labelX = first.col * moduleWidth + moduleWidth / 4;
+                    let labelY = first.row * moduleHeight + 3 * moduleHeight / 4;
+                    if (conn.points.length > 1) {
+                        const second = conn.points[1];
+                        if (second.col > first.col) {
+                            labelX = first.col * moduleWidth + moduleWidth / 4;
+                            labelY = first.row * moduleHeight + 3 * moduleHeight / 4;
+                        } else if (second.col < first.col) {
+                            labelX = first.col * moduleWidth + 3 * moduleWidth / 4;
+                            labelY = first.row * moduleHeight + moduleHeight / 4;
+                        } else if (second.row > first.row) {
+                            labelX = first.col * moduleWidth + 3 * moduleWidth / 4;
+                            labelY = first.row * moduleHeight + moduleHeight / 4;
+                        } else if (second.row < first.row) {
+                            labelX = first.col * moduleWidth + moduleWidth / 4;
+                            labelY = first.row * moduleHeight + 3 * moduleHeight / 4;
+                        }
+                    }
+                    svgContent += `<text x="${labelX}" y="${labelY}" font-family="Micro 5" font-size="${connectionFontSize}px" font-weight="bold" text-anchor="middle">${conn.name}</text>`;
+                }
+                if (conn.endName) {
+                    const last = conn.points[conn.points.length - 1];
+                    let labelX = last.col * moduleWidth + moduleWidth / 4;
+                    let labelY = last.row * moduleHeight + 3 * moduleHeight / 4;
+                    if (conn.points.length > 1) {
+                        const secondLast = conn.points[conn.points.length - 2];
+                        if (secondLast.col > last.col || secondLast.row < last.row) {
+                            labelX = last.col * moduleWidth + moduleWidth / 4;
+                            labelY = last.row * moduleHeight + 3 * moduleHeight / 4;
+                        } else if (secondLast.col < last.col || secondLast.row > last.row) {
+                            labelX = last.col * moduleWidth + 3 * moduleWidth / 4;
+                            labelY = last.row * moduleHeight + moduleHeight / 4;
+                        }
+                    }
+                    svgContent += `<text x="${labelX}" y="${labelY}" font-family="Micro 5" font-size="${connectionFontSize}px" font-weight="bold" text-anchor="middle">${conn.endName}</text>`;
+                }
+            });
+
+            selectedGroups.forEach((group, index) => {
+                if (group.modules.length > 0) {
+                    const edges = [];
+                    const offset = 4.5;
+                    group.modules.forEach(module => {
+                        const x = module.col * moduleWidth;
+                        const y = module.row * moduleHeight;
+                        if (!group.modules.some(p => p.row === module.row - 1 && p.col === module.col)) {
+                            edges.push(`M${x + offset},${y + offset} L${x + moduleWidth - offset},${y + offset}`);
+                        }
+                        if (!group.modules.some(p => p.row === module.row + 1 && p.col === module.col)) {
+                            edges.push(`M${x + offset},${y + moduleHeight - offset} L${x + moduleWidth - offset},${y + moduleHeight - offset}`);
+                        }
+                        if (!group.modules.some(p => p.row === module.row && p.col === module.col - 1)) {
+                            edges.push(`M${x + offset},${y + offset} L${x + offset},${y + moduleHeight - offset}`);
+                        }
+                        if (!group.modules.some(p => p.row === module.row && p.col === module.col + 1)) {
+                            edges.push(`M${x + moduleWidth - offset},${y + offset} L${x + moduleWidth - offset},${y + moduleHeight - offset}`);
+                        }
+                    });
+                    const path = edges.join(' ');
+                    svgContent += `<path d="${path}" fill="none" stroke="${groupColors[group.colorIndex - 1]}" stroke-width="9" stroke-dasharray="22.5,10"/>`;
+                }
+            });
+
+            if (currentConnection.length > 0) {
+                const index = connections.length;
+                const isForwardSlash = (removedIndices[0] || index) % 2 === 0;
+                currentConnection.forEach(point => {
+                    const x = point.col * moduleWidth;
+                    const y = point.row * moduleHeight;
+                    svgContent += `<rect x="${x}" y="${y}" width="${moduleWidth}" height="${moduleHeight}" fill="url(#pattern${index})"/>`;
+                });
+                if (currentConnection.length >= 2) {
+                    let path = '';
+                    currentConnection.forEach(point => {
+                        const px = point.col * moduleWidth + moduleWidth / 2;
+                        const py = point.row * moduleHeight + moduleHeight / 2;
+                        path += (path ? ' L' : 'M') + `${px} ${py}`;
+                    });
+                    svgContent += `<path d="${path}" fill="none" stroke="#000000" stroke-width="${Math.max(3, moduleWidth / 30)}"/>`;
+
+                    const last = currentConnection[currentConnection.length - 1];
+                    const secondLast = currentConnection[currentConnection.length - 2];
+                    const x1 = secondLast.col * moduleWidth + moduleWidth / 2;
+                    const y1 = secondLast.row * moduleHeight + moduleHeight / 2;
+                    const x2 = last.col * moduleWidth + moduleWidth / 2;
+                    const y2 = last.row * moduleHeight + moduleHeight / 2;
+                    const angle = Math.atan2(y2 - y1, x2 - x1);
+                    const headLength = 40;
+                    const headHeight = headLength;
+                    const headBase = headHeight * Math.sqrt(3) / 2;
+                    svgContent += `<polygon points="${x2},${y2} ${x2 - headHeight * Math.cos(angle)},${y2 - headHeight * Math.sin(angle)} ${x2 - headHeight * Math.cos(angle) + headBase * Math.sin(angle) / 2},${y2 - headHeight * Math.sin(angle) - headBase * Math.cos(angle) / 2}" fill="#000000"/>`;
+                }
+
+                const first = currentConnection[0];
+                let labelX = first.col * moduleWidth + moduleWidth / 4;
+                let labelY = first.row * moduleHeight + 3 * moduleHeight / 4;
+                if (currentConnection.length > 1) {
+                    const second = currentConnection[1];
+                    if (second.col > first.col) {
+                        labelX = first.col * moduleWidth + moduleWidth / 4;
+                        labelY = first.row * moduleHeight + 3 * moduleHeight / 4;
+                    } else if (second.col < first.col) {
+                        labelX = first.col * moduleWidth + 3 * moduleWidth / 4;
+                        labelY = first.row * moduleHeight + moduleHeight / 4;
+                    } else if (second.row > first.row) {
+                        labelX = first.col * moduleWidth + 3 * moduleWidth / 4;
+                        labelY = first.row * moduleHeight + moduleHeight / 4;
+                    } else if (second.row < first.row) {
+                        labelX = first.col * moduleWidth + moduleWidth / 4;
+                        labelY = first.row * moduleHeight + 3 * moduleHeight / 4;
+                    }
+                }
+                const nextIndex = removedIndices[0] || connections.length;
+                svgContent += `<text x="${labelX}" y="${labelY}" font-family="Micro 5" font-size="${connectionFontSize}px" font-weight="bold" text-anchor="middle">${nextIndex + 1}A</text>`;
+            }
+
+            svgContent += `</svg>`;
+
+            const blob = new Blob([svgContent], { type: 'image/svg+xml' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.download = `grid_${cols}x${rows}.svg`;
+            link.href = url;
+            link.click();
+        }
     </script>
 </body>
 </html>
